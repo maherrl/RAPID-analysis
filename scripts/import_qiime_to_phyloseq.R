@@ -1,45 +1,90 @@
 ########################################################
 # This script is for importing microbiome data from Qiime2
-# to phyloseq 
+# to phyloseq for the RAPID data
 # Created by Rebecca Maher
 # Created on 9/20/18
+# Edited on 9/27/18
 ########################################################
 
 # clear workspace-----------------------------
 rm(list=ls())
 
 # load libraries
-library(phyloseq)
+library('phyloseq')
+packageVersion('phyloseq')
 library(ape)
 
+setwd("~/Box Sync/RAPID-analysis/data")
 
 ##
 # Importing data and transformations ##
 # Import qiime mapping file, biom otu table, and tree
-mapfile = "/filepath/map.txt"
+mapfile = "~/Box Sync/RAPID/RAPID-analysis/data/map.txt"
 map = import_qiime_sample_data(mapfile)
 class(map)
 
 # Import tree
-tree = read_tree("/filepath/rep_set.tre")
+tree = read_tree("~/Box Sync/RAPID/RAPID-analysis/data/tree.nwk")
 
-# This biom file is a result of the pick_open_reference_otu command in qiime1,
-# In qiime1, I already removed mitochondria and chloroplasts, removed otus with < 100 occurrences
-# and samples with < 1000 counts.
-biomfile = "/filepath/otu_table_mc2_w_tax_no_pynast_failures_o100_s1000_filt.biom"
+# In qiime2, I already removed mitochondria and chloroplasts, removed otus with < 10 occurrences and
+# present in less than 1 sample
+biomfile = "/Users/Becca/Box Sync/RAPID/RAPID-analysis/data/otu-table-no-mitochondria-no-chloroplast-min2-names-wtax.biom"
 biom = import_biom(biomfile, parseFunction = parse_taxonomy_default)
 
-# This should only be done once, before starting analyses because every time you rarefy, it produces a different 
-# table
-min_lib <- min(sample_sums(biom)) qd = merge_phyloseq(map,tree,biom) rarebiom <- rarefy_even_depth(biom,sample.size 
-                                                                                                   = min_lib, verbose = FALSE, replace = TRUE)##
+qd1 = merge_phyloseq(map,tree,biom) 
 
-##
-# Various necessary adjustments to the data (Specific to your data)
-# Change rank names from Rank1, Rank2, ... to Kingdom, Phylum, etc.
+# Changing the rank names of the phyloseq object
 colnames(tax_table(qd)) = c(k="Kingdom", p="Phylum", c="Class", o="Order",f="Family", g="Genus", s="Species")
-# check if it worked 
 rank_names(qd)
+
+# Normalization technique using Naive Proportions from the "Waste Not, Want Not"
+# paper
+
+# I could not get this code to work. I was able to remove singletons, but not
+# remove OTUs appearing in at least 3 samples, error in prune_taxa (wh1, qd)
+# But not necessary because I did this in qiime.
+
+# Remove any samples or OTUs that don't have any reads.
+# Also remove singletons (only 1 count as sample or OTU)
+# remove_singletons_empties = function(qd){
+#   require("phyloseq")
+#     qd = prune_taxa(taxa_sums(qd) > 2.5, qd)
+#     qd = prune_samples(sample_sums(qd) > 2.5, qd)
+#   # Remove OTUs not appearing in at least 3 samples
+#   if( taxa_are_rows(qd)){
+#     y=otu_table(qd)
+#     wh1 = apply(apply(y, 1, function(x){x>=1}), MARGIN = 1, sum) >= 3
+#   } else {
+#     y = as(t(otu_table(qd)), "matrix")
+#     wh1 = apply(apply(y, 1, function(x){x>=1}), MARGIN = 1, sum) >= 3
+#   }
+#   qd = prune_taxa(wh1, qd)
+#     return(qd)
+# }
+
+# remove_singletons_empties(qd)
+
+# Define the naive (simple proportion) normalization function.
+
+proportion = function(qd){
+  # Normalize total sequences represented
+  normf = function(x, tot=max(sample_sums(qd))){tot*x/sum(x)}
+  qd = transform_sample_counts(qd, normf)
+  # Scale by dividing each variable by its standard deviation
+  qd = transform_sample_counts(qd,function(x) x/sd(x))
+  # Center by subtracting the median
+  qd = transform_sample_counts(qd, function(x) (x-median(x)))
+  return(qd)
+}
+
+proportion(qd)
+
+qd1000 <- prune_samples(sample_sums(qd)>=1000, qd)
+qd1000_acr <- subset_samples(qd1000, species == "ACR")
+
+
+
+
 # Make a numeric factor into a categorical
 # In this case, i had temperature as 26 or 29, R considers this numerical but I want to consider it categorical
 sample_data(qd)$temp=factor(get_variable(qd,"temp"))
