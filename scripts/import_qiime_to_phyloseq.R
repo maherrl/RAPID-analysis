@@ -3,7 +3,7 @@
 # to phyloseq for the RAPID data
 # Created by Rebecca Maher
 # Created on 9/20/18
-# Edited on 9/27/18
+# Edited on 10/2/18
 ########################################################
 
 # clear workspace-----------------------------
@@ -15,7 +15,7 @@ packageVersion('phyloseq')
 library(ape)
 library("biomformat");packageVersion("biomformat")
 
-setwd("~/Box Sync/RAPID-analysis/data")
+setwd("~/Box Sync/RAPID-analysis/")
 
 ##
 # Importing data and transformations ##
@@ -38,6 +38,13 @@ qd = merge_phyloseq(map,tree,biom)
 colnames(tax_table(qd)) = c(k="Kingdom", p="Phylum", c="Class", o="Order",f="Family", g="Genus", s="Species")
 rank_names(qd)
 
+# Removing samples that have an NA in the metadata file
+samples_wna <- c("July2016.228.2", "July2016.251.2", "March2016.acr35", 
+                 "May2016.215poc", "negative", "positive")
+samples <- sample_names(qd)
+samples_nona <- setdiff(samples, samples_wna)
+qd <- prune_samples(samples_nona, qd)
+
 # Normalization technique using Naive Proportions from the "Waste Not, Want Not"
 # paper
 # Define the naive (simple proportion) normalization function.
@@ -55,11 +62,10 @@ otu_biom <- make_biom(data=otu)
 write_biom(otu_biom, "/Users/Becca/Box Sync/RAPID/RAPID-analysis/data/otu-table-prop.biom")
 
 # Make a numeric factor into a categorical
-# In this case, i had temperature as 26 or 29, R considers this numerical but I want to consider it categorical
-sample_data(qd)$temp=factor(get_variable(qd,"temp"))
+sample_data(qd)$time=factor(get_variable(qd,"time"))
 ##
 
 ##
 # Save the Formal class phyloseq to an external file to load in other scripts (qd = qiimedata)
-save(qd, file = "/filepath/qd.RData")
+save(qd, file = "~/Box Sync/RAPID/RAPID-analysis/data/qd.RData")
 # The phyloseq object qd is now ready to use in diversity analyses
