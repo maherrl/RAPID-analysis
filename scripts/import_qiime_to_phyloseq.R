@@ -13,6 +13,7 @@ rm(list=ls())
 library('phyloseq')
 packageVersion('phyloseq')
 library(ape)
+library("biomformat");packageVersion("biomformat")
 
 setwd("~/Box Sync/RAPID-analysis/data")
 
@@ -31,7 +32,7 @@ tree = read_tree("~/Box Sync/RAPID/RAPID-analysis/data/tree.nwk")
 biomfile = "/Users/Becca/Box Sync/RAPID/RAPID-analysis/data/otu-table-no-mitochondria-no-chloroplast-min2-names-wtax.biom"
 biom = import_biom(biomfile, parseFunction = parse_taxonomy_default)
 
-qd1 = merge_phyloseq(map,tree,biom) 
+qd = merge_phyloseq(map,tree,biom) 
 
 # Changing the rank names of the phyloseq object
 colnames(tax_table(qd)) = c(k="Kingdom", p="Phylum", c="Class", o="Order",f="Family", g="Genus", s="Species")
@@ -39,51 +40,19 @@ rank_names(qd)
 
 # Normalization technique using Naive Proportions from the "Waste Not, Want Not"
 # paper
-
-# I could not get this code to work. I was able to remove singletons, but not
-# remove OTUs appearing in at least 3 samples, error in prune_taxa (wh1, qd)
-# But not necessary because I did this in qiime.
-
-# Remove any samples or OTUs that don't have any reads.
-# Also remove singletons (only 1 count as sample or OTU)
-# remove_singletons_empties = function(qd){
-#   require("phyloseq")
-#     qd = prune_taxa(taxa_sums(qd) > 2.5, qd)
-#     qd = prune_samples(sample_sums(qd) > 2.5, qd)
-#   # Remove OTUs not appearing in at least 3 samples
-#   if( taxa_are_rows(qd)){
-#     y=otu_table(qd)
-#     wh1 = apply(apply(y, 1, function(x){x>=1}), MARGIN = 1, sum) >= 3
-#   } else {
-#     y = as(t(otu_table(qd)), "matrix")
-#     wh1 = apply(apply(y, 1, function(x){x>=1}), MARGIN = 1, sum) >= 3
-#   }
-#   qd = prune_taxa(wh1, qd)
-#     return(qd)
-# }
-
-# remove_singletons_empties(qd)
-
 # Define the naive (simple proportion) normalization function.
+# Normalize total sequences represented
+normf = function(x, tot=max(sample_sums(qd))){tot*x/sum(x)}
+qd = transform_sample_counts(qd, normf)
+# Scale by dividing each variable by its standard deviation
+qd = transform_sample_counts(qd,function(x) x/sd(x))
+# Center by subtracting the median
+# qd = transform_sample_counts(qd, function(x) x - median(x)) # didnt do anything?
 
-proportion = function(qd){
-  # Normalize total sequences represented
-  normf = function(x, tot=max(sample_sums(qd))){tot*x/sum(x)}
-  qd = transform_sample_counts(qd, normf)
-  # Scale by dividing each variable by its standard deviation
-  qd = transform_sample_counts(qd,function(x) x/sd(x))
-  # Center by subtracting the median
-  qd = transform_sample_counts(qd, function(x) (x-median(x)))
-  return(qd)
-}
-
-proportion(qd)
-
-qd1000 <- prune_samples(sample_sums(qd)>=1000, qd)
-qd1000_acr <- subset_samples(qd1000, species == "ACR")
-
-
-
+# Export it to Qiime2
+otu <- as(otu_table(qd), "matrix")
+otu_biom <- make_biom(data=otu)
+write_biom(otu_biom, "/Users/Becca/Box Sync/RAPID/RAPID-analysis/data/otu-table-prop.biom")
 
 # Make a numeric factor into a categorical
 # In this case, i had temperature as 26 or 29, R considers this numerical but I want to consider it categorical
