@@ -44,6 +44,9 @@ samples <- sample_names(qd)
 samples_nona <- setdiff(samples, samples_wna)
 qd <- prune_samples(samples_nona, qd)
 
+# Remove samples with less than 1000 reads
+qd <- prune_samples(sample_sums(qd) > 1000, qd)
+
 # Normalization technique by proportion
 qd = transform_sample_counts(qd, function(x) x/sum(x))
 
