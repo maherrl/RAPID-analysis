@@ -47,8 +47,13 @@ qd <- prune_samples(samples_nona, qd)
 # Remove samples with less than 1000 reads
 qd <- prune_samples(sample_sums(qd) > 1000, qd)
 
-# Normalization technique by proportion
-qd = transform_sample_counts(qd, function(x) x/sum(x))
+# Option to rarefy data
+min_lib <- min(sample_sums(qd)) 
+set.seed(400)
+qd <- rarefy_even_depth(qd, sample.size = min_lib, verbose = FALSE, replace = TRUE)
+
+# Option to normalize data: Normalization technique by proportion
+# qd = transform_sample_counts(qd, function(x) x/sum(x))
 
 # Export it to Qiime2
 #otu <- as(otu_table(qd), "matrix")
@@ -61,5 +66,6 @@ sample_data(qd)$time=factor(get_variable(qd,"time"))
 
 ##
 # Save the Formal class phyloseq to an external file to load in other scripts (qd = qiimedata)
-save(qd, file = "~/Box Sync/RAPID/RAPID-analysis/data/qd_prop.RData")
+# save(qd, file = "~/Box Sync/RAPID/RAPID-analysis/data/qd_prop.RData")
+save(qd, file = "~/Box Sync/RAPID/RAPID-analysis/data/qd_rare.RData")
 # The phyloseq object qd is now ready to use in diversity analyses
