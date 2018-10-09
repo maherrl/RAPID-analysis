@@ -52,6 +52,13 @@ min_lib <- min(sample_sums(qd))
 set.seed(400)
 qd <- rarefy_even_depth(qd, sample.size = min_lib, verbose = FALSE, replace = TRUE)
 
+# Option to normalize rarefied data by species max. This places more weight on minor
+# players in the community
+#otus_max <- as(otu_table(qd), "matrix")
+#otus_max <- decostand(otus_max, method = "max", MARGIN = 1)
+#OTU_max <- otu_table(otus_max, taxa_are_rows = TRUE)
+#otu_table(qd) <- OTU_max
+
 # Option to normalize data: Normalization technique by proportion
 # qd = transform_sample_counts(qd, function(x) x/sum(x))
 
