@@ -18,12 +18,56 @@ library('vegan'); packageVersion('vegan')
 # set working directory-------------------
 #setwd("~/Box Sync/RAPID-analysis/")
 
-## functions (if any)----------------------
+## functions----------------------
+pairwise.adonis.dm <- function(x,factors,stratum=NULL,p.adjust.m="bonferroni",perm=999){
+  
+  library(vegan)
+  
+  if(class(x) != "dist") stop("x must be a dissimilarity matrix (dist object)")
+  
+  co = as.matrix(combn(unique(factors),2))
+  
+  pairs = c()
+  
+  F.Model =c()
+  
+  R2 = c()
+  
+  p.value = c()
+  
+  
+  
+  for(elem in 1:ncol(co)){
+    
+    sub_inds <- factors %in% c(as.character(co[1,elem]),as.character(co[2,elem]))
+    
+    resp <- as.matrix(x)[sub_inds,sub_inds]
+    
+    ad = adonis(as.dist(resp) ~
+                  
+                  factors[sub_inds], strata=stratum[sub_inds], permutations=perm);
+    
+    pairs = c(pairs,paste(co[1,elem],'vs',co[2,elem]));
+    
+    F.Model =c(F.Model,ad$aov.tab[1,4]);
+    
+    R2 = c(R2,ad$aov.tab[1,5]);
+    
+    p.value = c(p.value,ad$aov.tab[1,6])
+    
+  }
+  
+  p.adjusted = p.adjust(p.value,method=p.adjust.m)
+  
+  pairw.res = data.frame(pairs,F.Model,R2,p.value,p.adjusted)
+  
+  return(pairw.res)
+  }
 
 ## Data Analysis----------------------------
 
 # First import qd object, this is the phyloseq object from the import_qiime_to_phyloseq.R
-#import(qd, file = "~/Box Sync/RAPID/RAPID-analysis/data/qd.RData")
+import(qd, file = "~/Box Sync/RAPID/RAPID-analysis/data/qd_rare.RData")
 
 # Calculate all four distance matrices: weighted unifrac, unweighted unifrac, bray curtis, binary jaccard
 qd_wu <- phyloseq::distance(qd, method = "wunifrac")
@@ -73,4 +117,38 @@ anova(betadisper(qd_bc, sampledf$time, bias.adjust = TRUE))
 anova(betadisper(qd_bj, sampledf$time, bias.adjust = TRUE))
 anova(betadisper(qd_wu, sampledf$time, bias.adjust = TRUE))
 anova(betadisper(qd_un, sampledf$time, bias.adjust = TRUE))
+
+## Add distances into a mapping file for plotting
+wu_means <- data.frame(rowMeans(as.matrix(qd_wu)))
+un_means <- data.frame(rowMeans(as.matrix(qd_un)))
+bc_means <- data.frame(rowMeans(as.matrix(qd_bc)))
+bj_means <- data.frame(rowMeans(as.matrix(qd_bj)))
+# Make a dataframe
+# Extracts the SampleIDs from the dataframe
+SampleID <- row.names(wu_means) 
+# makes a new dataframe with the specified columnes
+raw_distances <- data.frame(SampleID, wu_means, un_means, bc_means,bj_means) 
+# Makes metadata into a df to work with
+s <- data.frame(sample_data(qd)) 
+# Change first column title to SampleID to match distances dataframe
+colnames(s)[1] <- "SampleID" 
+# merges metadata df and distances df
+distances <- merge(raw_distances, s, by = "SampleID") 
+colnames(distances)[2:5] <- c("distwu", "distun", "distbc","distbj")
+
+# Pairwise adonis
+pairwise.adonis.dm(qd_bc, sample_data(qd)$treatment, p.adjust.m = "fdr")
+pairwise.adonis.dm(qd_bc, sample_data(qd)$time, p.adjust.m = "fdr")
+pairwise.adonis.dm(qd_bc, sample_data(qd)$species, p.adjust.m = "fdr")
+# Pairwise betadisper with fdr correction
+p.adjust(permutest(betadisper(qd_un, sampledf$treatment, 
+                              bias.adjust = TRUE), 
+                   pairwise=TRUE)$pairwise$permuted, method = 'fdr')
+p.adjust(permutest(betadisper(qd_un, sampledf$species, 
+                              bias.adjust = TRUE), 
+                   pairwise=TRUE)$pairwise$permuted, method = 'fdr')
+p.adjust(permutest(betadisper(qd_un, sampledf$time, 
+                              bias.adjust = TRUE), 
+                   pairwise=TRUE)$pairwise$permuted, method = 'fdr')
+
 
