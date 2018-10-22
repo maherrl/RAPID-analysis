@@ -75,6 +75,11 @@ qd_un <- phyloseq::distance(qd, method = "unifrac")
 qd_bc <- phyloseq::distance(qd, method = "bray")
 qd_bj <- distance(qd, method = "jaccard", binary =TRUE)
 
+ord_wu <- ordinate(qd, "PCoA", distance = qd_wu)
+ord_un <- ordinate(qd, "PCoA", distance = qd_un)
+ord_bc <- ordinate(qd, "PCoA", distance = qd_bc)
+ord_bj <- ordinate(qd, "PCoA", distance = qd_bj)
+
 # PERMANOVA's with Adonis -  Permutational Multivariate Analasis of Variance
 # Make a data frame from the sample_data
 sampledf <- data.frame(sample_data(qd))
