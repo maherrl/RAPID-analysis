@@ -74,5 +74,5 @@ sample_data(qd)$time=factor(get_variable(qd,"time"))
 ##
 # Save the Formal class phyloseq to an external file to load in other scripts (qd = qiimedata)
 # save(qd, file = "~/Box Sync/RAPID/RAPID-analysis/data/qd_prop.RData")
-save(qd, file = "~/Box Sync/RAPID/RAPID-analysis/data/qd_rare.RData")
+save(qd, file = "~/Box Sync/RAPID/RAPID-analysis/data/qd.RData")
 # The phyloseq object qd is now ready to use in diversity analyses
