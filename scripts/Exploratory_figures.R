@@ -23,6 +23,7 @@ library(reshape)
 nmds_wu <- metaMDSiter(qd_wu, k=2, trymax = 1000, maxit = 1000, autotransform=FALSE)
 nmds_un <- metaMDSiter(qd_un, k=2, trymax = 1000, maxit = 1000, autotransform=FALSE)
 
+# qd object is the phyloseq object for RAPID data
 # plot
 a <- plot_ordination(qd, nmds_wu, color = "time") + geom_point(size = 4) + theme_classic() +
   theme(legend.position = "left")
@@ -118,6 +119,8 @@ p
 
 #--------------------------------------------------------------
 # Alpha plots of Chao1 index by time and treatment
+
+# alphdiv is the dataframe of alpha diversity statistics produced from the alphadiv_analyses.R script
 # Colorfull plots
 og_names <- c("T0", "T1", "T2", "T3", "T4")
 new_names <- c("Jan 16", "March 16", "May 16", "July 16", "Jan 17")
