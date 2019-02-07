@@ -11,6 +11,8 @@ library(dplyr)
 library(data.table)
 library("BiocParallel")
 
+# load qd phyloseq object
+
 # Functions
 # Function fast_melt
 fast_melt = function(physeq,
@@ -72,32 +74,6 @@ fast_melt = function(physeq,
   return(mdt)
 }
 
-summarize_taxa <- function(counts, taxonomy) {
-  if(is.matrix(taxonomy)) {
-    #message('multiple taxonomies')
-    alply(taxonomy, 2, summarize_taxa, counts = counts, .dims = TRUE)
-  } else if(is.matrix(counts)) {
-    #message('multiple counts')
-    require('plyr')
-    apply(counts, 2, summarize_taxa, taxonomy = taxonomy)
-  } else {
-    #message('summarize')
-    tapply(counts, taxonomy, sum)
-  }
-}
-
-phyloseq_summarize_taxa <- function(psdata, taxonomic.ranks =
-                                      rank_names(psdata)) {
-  if(length(taxonomic.ranks) > 1) {
-    names(taxonomic.ranks) <- taxonomic.ranks
-    llply(taxonomic.ranks, phyloseq_summarize_taxa, psdata = psdata)
-  } else {
-    taxa <- as(tax_table(psdata)[, taxonomic.ranks], 'character')
-    sum_tax_table <- summarize_taxa(as(otu_table(psdata), 'matrix'), taxa)
-    phyloseq(otu_table(sum_tax_table, taxa_are_rows = TRUE),
-             sample_data(psdata, FALSE))
-  }
-}
 
 # First load unrarefied data
 # Subset to only ACR and POC
