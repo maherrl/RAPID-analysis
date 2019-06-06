@@ -62,5 +62,49 @@ longitudinal_comp_test = ANCOM.main(OTUdat = OTUdf,
                                     sig=0.05,
                                     prev.cut = 0.90)
 
-longitudinal_comp_test$W.taxa
+longitudinal_comp_test$W.taxa # no significant results
 
+comp_test = ANCOM.main(OTUdat = OTUdf, 
+                                    Vardat = Vardat, 
+                                    adjusted = T,
+                                    repeated = F,
+                                    main.var = "time:treatment",
+                                    adj.formula = "time + treatment",
+                                    repeat.var = NULL,
+                                    longitudinal = F,
+                                    random.formula = "~1|indiv",
+                                    multcorr = 2,
+                                    sig=0.05,
+                                    prev.cut = 0.90)
+
+comp_test$W.taxa # one significant result
+
+comp_test_time = ANCOM.main(OTUdat = OTUdf, 
+                       Vardat = Vardat, 
+                       adjusted = F,
+                       repeated = F,
+                       main.var = "time",
+                       adj.formula = NULL,
+                       repeat.var = NULL,
+                       longitudinal = F,
+                       random.formula = "~1|indiv",
+                       multcorr = 2,
+                       sig=0.05,
+                       prev.cut = 0.90)
+
+comp_test_time$W.taxa # 16 significant taxa
+
+comp_test_trt = ANCOM.main(OTUdat = OTUdf, 
+                            Vardat = Vardat, 
+                            adjusted = F,
+                            repeated = F,
+                            main.var = "treatment",
+                            adj.formula = NULL,
+                            repeat.var = NULL,
+                            longitudinal = F,
+                            random.formula = "~1|indiv",
+                            multcorr = 2,
+                            sig=0.05,
+                            prev.cut = 0.90)
+
+comp_test_trt$W.taxa # No significcant results
