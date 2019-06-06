@@ -28,7 +28,7 @@ tree = read_tree("~/Box Sync/RAPID/RAPID-analysis/data/tree.nwk")
 
 # In qiime2, I already removed mitochondria and chloroplasts, removed otus with < 10 occurrences and
 # present in less than 1 sample
-biomfile = "/Users/Becca/Box Sync/RAPID/RAPID-analysis/data/otu-table-no-mitochondria-no-chloroplast-min2-names-wtax.biom"
+biomfile = "/Users/Becca/Box Sync/RAPID/biom/otu-table-no-mitochondria-no-chloroplast-min2-names-wtax-silva.biom"
 biom = import_biom(biomfile, parseFunction = parse_taxonomy_default)
 
 qd = merge_phyloseq(map,tree,biom) 
@@ -48,9 +48,13 @@ qd <- prune_samples(samples_nona, qd)
 qd <- prune_samples(sample_sums(qd) > 1000, qd)
 
 # Option to rarefy data
-min_lib <- min(sample_sums(qd)) 
+#min_lib <- min(sample_sums(qd)) 
+#set.seed(400)
+#qd <- rarefy_even_depth(qd, sample.size = min_lib, verbose = FALSE, replace = TRUE)
+
+# Option to rarefy data
 set.seed(400)
-qd <- rarefy_even_depth(qd, sample.size = min_lib, verbose = FALSE, replace = TRUE)
+qd <- rarefy_even_depth(qd, sample.size = 1778, verbose = FALSE, replace = TRUE)
 
 # Option to normalize rarefied data by species max. This places more weight on minor
 # players in the community
@@ -74,5 +78,5 @@ sample_data(qd)$time=factor(get_variable(qd,"time"))
 ##
 # Save the Formal class phyloseq to an external file to load in other scripts (qd = qiimedata)
 # save(qd, file = "~/Box Sync/RAPID/RAPID-analysis/data/qd_prop.RData")
-save(qd, file = "~/Box Sync/RAPID/RAPID-analysis/data/qd.RData")
+save(qd, file = "~/Box Sync/RAPID/RAPID-analysis/data/qdunrar.RData")
 # The phyloseq object qd is now ready to use in diversity analyses
