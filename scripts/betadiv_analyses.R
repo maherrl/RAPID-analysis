@@ -159,6 +159,8 @@ colnames(bet_distances)[2:5] <- c("betdistwu", "betdistun", "betdistbc","betdist
 
 ### Within group distances
 
+# Here I define groups as trt.time by making a new column in the mapping file with treatment 
+# and time merged into one column so that groups are for ex: May 2016.N or Jan 2017.C
 # Run betadisper on the time_trt combo
 betabc <- betadisper(qd_bc, sampledf$trt.time, bias.adjust = TRUE)
 betabj <- betadisper(qd_bj, sampledf$trt.time, bias.adjust = TRUE)
