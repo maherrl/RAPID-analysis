@@ -26,7 +26,7 @@ data_summary <- function(data, varname, groupnames){
   require(plyr)
   summary_func <- function(x, col){
     c(mean = mean(x[[col]], na.rm=TRUE),
-      sd = sderr(x[[col]]))
+      sd = sderr(x[[col]]), na.rm=TRUE)
   }
   data_sum<-ddply(data, groupnames, .fun=summary_func,
                   varname)
@@ -50,12 +50,14 @@ p <- ggplot(df_chao, aes(x=time, y=richness, group=treatment, color = treatment)
   ylab("Chao1 Index") + ggtitle("All Species Chao1 Index by Time") + xlab("Time")
 p + scale_colour_colorblind() + theme_bw()
 
+sigsimp <- c("A","A","B","AB"," "," ","C")
 p <- ggplot(df_simp, aes(x=time, y=evenness, group=treatment, color = treatment)) + 
   geom_line() +
   geom_point() +
   geom_errorbar(aes(ymin=evenness-sd, ymax=evenness+sd), width=.2,
                 position = position_dodge(0.05)) +
   scale_x_discrete(breaks=breakss, labels=labelss) +
+  stat_summary(geom = 'text', label = sigsimp, fun.y = max, vjust = -1, size = 2.5) +
   ylab("Simpson's Index") + ggtitle("All Species Simpson's Index by Time") + xlab("Time")
 p + scale_colour_colorblind() + theme_bw()
 
@@ -80,11 +82,11 @@ df_with_bj <- data_summary(betadiv, varname="withdistbj", groupnames=c("treatmen
 df_with_un <- data_summary(betadiv, varname="withdistun", groupnames=c("treatment", "time"))
 
 
-p <- ggplot(df_with_un, aes(x=time, y=withdistun, group=treatment, color = treatment)) + 
+p <- ggplot(df_with_bj, aes(x=time, y=withdistbj, group=treatment, color = treatment)) + 
   geom_line() +
   geom_point() +
-  geom_errorbar(aes(ymin=withdistun-sd, ymax=withdistun+sd), width=.2,
+  geom_errorbar(aes(ymin=withdistbj-sd, ymax=withdistbj+sd), width=.2,
                 position = position_dodge(0.05)) +
   scale_x_discrete(breaks=breakss, labels=labelss) +
-  ylab("Between Group Distance") + ggtitle("All Species - UN") + xlab("Time")
+  ylab("Between Group Distance") + ggtitle("All Species - BJ") + xlab("Time")
 p + scale_colour_colorblind() + theme_bw()
