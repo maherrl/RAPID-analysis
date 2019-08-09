@@ -162,6 +162,12 @@ kruskal.test(evenness ~ treatment, data = alphadiv) # not sig
 kruskal.test(evenness ~ species, data = alphadiv) # not sig
 
 dunnTest(evenness ~ time, data = alphadiv, method = "bh")
+
+summary(aov(asinTransform(evenness) ~ time, data = alphadiv))
+summary(aov(asinTransform(evenness) ~ treatment, data = alphadiv)) # not sig
+summary(aov(asinTransform(evenness) ~ species, data = alphadiv)) # not sig
+
+TukeyHSD(aov(asinTransform(richness) ~ time, data = alphadiv))
 ```
 #### Faith's phylogenetic diversity data (faithPD)
 Proceeding with sqrt-transformed faithPD data
@@ -178,6 +184,7 @@ Check for interactions
 ```{r int}
 summary(aov(sqrt(richness) ~ time*treatment*species, data = alphadiv))
 summary(aov(sqrt(faithPD) ~ time*treatment*species, data = alphadiv))
+summary(aov(asinTransform(evenness) ~ time*treatment*species, data = alphadiv))
 # This interaction test with Kruskal wallis is not comparable to anova
 int <- interaction(alphadiv$time, alphadiv$treatment, alphadiv$species)
 kruskal.test(evenness ~ int, data = alphadiv)
@@ -211,6 +218,12 @@ kruskal.test(evenness ~ time, data = alphadiv)
 kruskal.test(evenness ~ treatment, data = alphadiv) # not sig
 
 dunnTest(evenness ~ time, data = alphadiv, method = "bh")
+
+summary(aov(asinTransform(evenness) ~ time, data = alphadiv))
+summary(aov(asinTransform(evenness) ~ treatment, data = alphadiv)) # not sig
+
+TukeyHSD(aov(asinTransform(evenness) ~ time, data = alphadiv))
+# TukeyHSD(aov(asinTransform(evenness) ~ treatment, data = alphadiv))
 ```
 #### Faith's phylogenetic diversity data (faithPD)
 Proceeding with sqrt-transformed faithPD data
@@ -225,6 +238,7 @@ Check for interactions
 ```{r int2}
 summary(aov(sqrt(richness) ~ time*treatment, data = alphadiv))
 summary(aov(sqrt(faithPD) ~ time*treatment, data = alphadiv))
+summary(aov(asinTransform(evenness) ~ time*treatment, data = alphadiv))
 # This interaction test with Kruskal wallis is not comparable to anova
 int <- interaction(alphadiv$time, alphadiv$treatment)
 kruskal.test(evenness ~ int, data = alphadiv)
