@@ -1,0 +1,220 @@
+---
+title: "RAPID Calculate Alpha Diversity Statistics"
+author: "Becca Maher"
+date: "6/6/2019"
+output: html_document
+---
+## Script for calculating alpha diversity statistics and testing for significant differences with metadata variables
+
+### 1 Setup the working space
+#### Libraries
+```{r libraries, message=FALSE}
+rm(list=ls())
+library(phyloseq)
+library(multcomp)
+library(picante)
+library(ggplot2 )
+library(tidyverse)
+```
+
+#### Functions
+```{r functions, include = FALSE}
+# Arc-sine transformation
+asinTransform <- function(p) { asin(sqrt(p)) }
+# Estimate faith's phylogenetic diversity 
+estimate_pd <- function(phylo){
+  
+  # Error if input is not of class phylo
+  if(class(phylo) != "phyloseq"){
+    stop("Input file is not of class 'phyloseq'.")
+  }
+  
+  # Error if no class phy_tree
+  if(!(.hasSlot(phylo, "phy_tree"))){
+    stop("Could not find tree slot in phylo object.")
+  }
+  
+  # Transpose if needed
+  # Adapted from phyloseq/vegan import
+  OTU <- phyloseq::otu_table(phylo)
+  if (taxa_are_rows(OTU)) {
+    OTU <- t(OTU)
+  }
+  
+  # Get matrix version of OTU table
+  otutable <- as(OTU, "matrix")
+  
+  # Get phylogenetic tree from pyloseq object
+  tree <- phyloseq::phy_tree(phylo)
+  
+  # Print status message
+  message("Calculating Faiths PD-index...")
+  
+  # If object is greater than 10mb, then print status message
+  if(object.size(otutable) > 10000000){
+    message("This is a large object, it may take awhile...")
+  }
+  
+  # Calculate Faith's PD-index
+  pdtable <- picante::pd(otutable, tree, include.root = F)
+  
+  # Return data frame of results
+  return(pdtable)
+}
+# Calculate standard error
+sderr <- function(x) {sd(x)/sqrt(length(x))}
+#+++++++++++++++++++++++++
+# Function to calculate the mean and the standard deviation
+# for each group
+#+++++++++++++++++++++++++
+# data : a data frame
+# varname : the name of a column containing the variable
+#to be summariezed
+# groupnames : vector of column names to be used as
+# grouping variables
+data_summary <- function(data, varname, groupnames){
+  require(plyr)
+  summary_func <- function(x, col){
+    c(mean = mean(x[[col]], na.rm=TRUE),
+      sd = sderr(x[[col]]), na.rm=TRUE)
+  }
+  data_sum<-ddply(data, groupnames, .fun=summary_func,
+                  varname)
+  data_sum <- rename(data_sum, c("mean" = varname))
+  return(data_sum)
+}
+```
+
+#### Load the data
+For all alpha and beta diversity statistics, I will be using the rarefied sOTU table. The table has been rarefied to 1778 sequences per sample.
+```{r load}
+load("~/Box Sync/RAPID/RAPID-analysis/data/qd_rar.RData")
+qd
+```
+
+### Calculating alpha diversity statistics
+Initialize matrices to store richness and evenness estimates
+```{r init}
+nsamp = nsamples(qd)
+
+richness <- matrix(nrow = nsamp)
+row.names(richness) <- sample_names(qd)
+
+evenness <- matrix(nrow =nsamp)
+row.names(evenness) <- sample_names(qd)
+
+faithPD <- matrix(nrow = nsamp)
+row.names(faithPD) <- sample_names(qd)
+##
+```
+Calculate statistics
+```{r stats, message = FALSE}
+# Options for measures = ("Observed", "Chao1", "ACE", "Shannon", "Simpson", "InvSimpson", "Fisher")
+
+# Calculate richness
+rich <- as.numeric(as.matrix(subset(estimate_richness(qd, measures = "Chao1"), select = c(1))))
+richness[ ,] <- rich
+colnames(richness) [1] <- "richness"
+
+# Calculate evenness
+even <- as.numeric(as.matrix(estimate_richness(qd, measures = "Simpson")))
+evenness[ ,] <- even
+colnames(evenness) [1] <- "evenness"
+
+# Calculate Faith's PD
+faith <- as.numeric(as.matrix(subset(estimate_pd(qd), select = c(1))))  # estimate_pd is a function assigned at the end of the script
+faithPD[ ,] <- faith
+colnames(faithPD) [1] <- "faithPD"
+
+# Included the subset in "rich" and "faith" because the Chao1 and Faith's PD measurement outputs two measures per sample (Chao1 and se.chao1)
+# and we only want Chao1, so we select for the first column
+```
+Combine our estimates for richness, evenness, and faith's PD into one dataframe
+```{r compile}
+alpha <- cbind(richness, evenness[,1][match(rownames(richness), rownames(evenness))],
+               faithPD[,1][match(rownames(richness), rownames(faithPD))])
+colnames(alpha) [2] <- "evenness"
+colnames(alpha) [3] <- "faithPD"
+head(alpha)
+
+# Add the sample metadata into this dataframe
+# Definitely not the cleanest way to do this...
+colnames(sample_data(qd))[1] <- "SampleID"
+s <- data.frame(sample_data(qd))
+rownames(s) <- NULL
+alpha <- cbind(SampleID = rownames(alpha), alpha)
+rownames(alpha) <- NULL
+alphadiv <- cbind(alpha, s)
+alphadiv <- alphadiv[,-5]
+alphadiv$richness <- as.numeric(as.character(alphadiv$richness))
+alphadiv$evenness <- as.numeric(as.character(alphadiv$evenness))
+alphadiv$faithPD <- as.numeric(as.character(alphadiv$faithPD))
+head(alphadiv)
+# write.csv(alphadiv, file = "~/Box Sync/RAPID/RAPID-analysis/data/alphadiv.csv")
+```
+
+## Create a new alpha stats file for acropora samples alone
+### Calculating alpha diversity statistics
+Subset species to only acropora
+```{r}
+qd_acr <- subset_samples(qd, species == "ACR")
+```
+Initialize matrices to store richness and evenness estimates
+```{r init2}
+nsamp = nsamples(qd_acr)
+
+richness <- matrix(nrow = nsamp)
+row.names(richness) <- sample_names(qd_acr)
+
+evenness <- matrix(nrow =nsamp)
+row.names(evenness) <- sample_names(qd_acr)
+
+faithPD <- matrix(nrow = nsamp)
+row.names(faithPD) <- sample_names(qd_acr)
+##
+```
+Calculate statistics
+```{r stats2, message = FALSE}
+# Options for measures = ("Observed", "Chao1", "ACE", "Shannon", "Simpson", "InvSimpson", "Fisher")
+
+# Calculate richness
+rich <- as.numeric(as.matrix(subset(estimate_richness(qd_acr, measures = "Chao1"), select = c(1))))
+richness[ ,] <- rich
+colnames(richness) [1] <- "richness"
+
+# Calculate evenness
+even <- as.numeric(as.matrix(estimate_richness(qd_acr, measures = "Simpson")))
+evenness[ ,] <- even
+colnames(evenness) [1] <- "evenness"
+
+# Calculate Faith's PD
+faith <- as.numeric(as.matrix(subset(estimate_pd(qd_acr), select = c(1))))  # estimate_pd is a function assigned at the end of the script
+faithPD[ ,] <- faith
+colnames(faithPD) [1] <- "faithPD"
+
+# Included the subset in "rich" and "faith" because the Chao1 and Faith's PD measurement outputs two measures per sample (Chao1 and se.chao1)
+# and we only want Chao1, so we select for the first column
+```
+Combine our estimates for richness, evenness, and faith's PD into one dataframe
+```{r compile2}
+alpha <- cbind(richness, evenness[,1][match(rownames(richness), rownames(evenness))],
+               faithPD[,1][match(rownames(richness), rownames(faithPD))])
+colnames(alpha) [2] <- "evenness"
+colnames(alpha) [3] <- "faithPD"
+head(alpha)
+
+# Add the sample metadata into this dataframe
+# Definitely not the cleanest way to do this...
+colnames(sample_data(qd_acr))[1] <- "SampleID"
+s <- data.frame(sample_data(qd_acr))
+rownames(s) <- NULL
+alpha <- cbind(SampleID = rownames(alpha), alpha)
+rownames(alpha) <- NULL
+alphadiv <- cbind(alpha, s)
+alphadiv <- alphadiv[,-5]
+alphadiv$richness <- as.numeric(as.character(alphadiv$richness))
+alphadiv$evenness <- as.numeric(as.character(alphadiv$evenness))
+alphadiv$faithPD <- as.numeric(as.character(alphadiv$faithPD))
+head(alphadiv)
+# write.csv(alphadiv, file = "~/Box Sync/RAPID/RAPID-analysis/data/alphadiv_ACR.csv")
+```
