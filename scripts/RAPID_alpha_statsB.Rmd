@@ -1,0 +1,235 @@
+---
+title: "RAPID Alpha Diversity Group Significance"
+author: "Becca Maher"
+date: "6/6/2019"
+output: html_document
+---
+## Script for calculating alpha diversity statistics and testing for significant differences with metadata variables
+
+### 1 Setup the working space
+```{r libraries, include=FALSE}
+rm(list=ls())
+library(phyloseq)
+library(multcomp)
+library(picante)
+library(ggplot2 )
+library(tidyverse)
+library(FSA)
+library(MASS)
+```
+
+#### Functions
+```{r functions}
+# Arc-sine transformation
+asinTransform <- function(p) { asin(sqrt(p)) }
+# Calculate standard error
+sderr <- function(x) {sd(x)/sqrt(length(x))}
+#+++++++++++++++++++++++++
+# Function to calculate the mean and the standard deviation
+# for each group
+#+++++++++++++++++++++++++
+# data : a data frame
+# varname : the name of a column containing the variable
+#to be summariezed
+# groupnames : vector of column names to be used as
+# grouping variables
+data_summary <- function(data, varname, groupnames){
+  require(plyr)
+  summary_func <- function(x, col){
+    c(mean = mean(x[[col]], na.rm=TRUE),
+      sd = sderr(x[[col]]), na.rm=TRUE)
+  }
+  data_sum<-ddply(data, groupnames, .fun=summary_func,
+                  varname)
+  data_sum <- rename(data_sum, c("mean" = varname))
+  return(data_sum)
+}
+```
+
+#### Load the data
+Load the alphadiv.csv files created in the RAPID_alpha_statsA.Rmd script. First starting with all species
+```{r load}
+alphadiv <- read.csv("~/Box Sync/RAPID/RAPID-analysis/data/alphadiv.csv")
+head(alphadiv)
+```
+
+
+### 2 Data Exploration
+Looking for normality and homogeneity of group dispersions
+#### Richness
+```{r}
+# box plot of richness by species
+ggplot(alphadiv, aes(x = species, y = richness)) +  geom_boxplot()
+# box plot of richness by time
+ggplot(alphadiv, aes(x = time, y = richness)) +  geom_boxplot()
+# box plot of richness by treatment
+ggplot(alphadiv, aes(x = treatment, y = richness)) +  geom_boxplot()
+# outlier is acropora, T3, Nitrate
+# Testing for normality
+histogram(alphadiv$richness)
+qqnorm(alphadiv$richness)
+abline(0,1)
+shapiro.test(alphadiv$richness)
+histogram(log(alphadiv$richness))
+qqnorm(log(alphadiv$richness))
+abline(0,1)
+shapiro.test(log(alphadiv$richness))
+histogram(sqrt(alphadiv$richness))
+qqnorm(sqrt(alphadiv$richness))
+abline(0,1)
+shapiro.test(sqrt(alphadiv$richness))
+# test for homogeneity of group dispersions
+bartlett.test(sqrt(richness) ~ time, data = alphadiv)
+bartlett.test(sqrt(richness) ~ treatment, data = alphadiv)
+bartlett.test(sqrt(richness) ~ species, data = alphadiv)
+# richness data are normal with equal group variances with a sqrt transformation
+```
+#### Evenness
+```{r}
+# box plot of evenness by species
+ggplot(alphadiv, aes(x = species, y = evenness)) +  geom_boxplot()
+# box plot of evenness by time
+ggplot(alphadiv, aes(x = time, y = evenness)) +  geom_boxplot()
+# box plot of evenness by treatment
+ggplot(alphadiv, aes(x = treatment, y = evenness)) +  geom_boxplot()
+# outlier is acropora, T3, Nitrate
+# Testing for normality
+histogram(alphadiv$evenness)
+qqnorm(alphadiv$evenness)
+abline(0,1)
+shapiro.test(alphadiv$evenness) # non-normal
+histogram(asinTransform(alphadiv$evenness))
+qqnorm(asinTransform(alphadiv$evenness))
+abline(0,1)
+shapiro.test(asinTransform(alphadiv$evenness)) # non-normal
+# test for homogeneity of group dispersions
+bartlett.test(evenness ~ time, data = alphadiv)
+bartlett.test(evenness ~ treatment, data = alphadiv)
+bartlett.test(evenness ~ species, data = alphadiv)
+# AsinTransformation does not make the evenness data normal
+# Variances are equal for groups under un-transformed data
+# will proceed with a non-Parametric Kruskal-Wallis test for evenness data
+```
+#### Faith's phylogenetic diversity
+```{r}
+# box plot of faithPD by species
+ggplot(alphadiv, aes(x = species, y = faithPD)) +  geom_boxplot()
+# box plot of faithPD by time
+ggplot(alphadiv, aes(x = time, y = faithPD)) +  geom_boxplot()
+# box plot of faithPD by treatment
+ggplot(alphadiv, aes(x = treatment, y = faithPD)) +  geom_boxplot()
+# outlier is acropora, T3, Nitrate
+# Testing for normality
+histogram(alphadiv$faithPD)
+qqnorm(alphadiv$faithPD)
+abline(0,1)
+shapiro.test(alphadiv$faithPD) # non-normal
+histogram(sqrt(alphadiv$faithPD))
+qqnorm(sqrt(alphadiv$faithPD))
+abline(0,1)
+shapiro.test(sqrt(alphadiv$faithPD)) # non-normal
+# test for homogeneity of group dispersions
+bartlett.test(faithPD ~ time, data = alphadiv)
+bartlett.test(faithPD ~ treatment, data = alphadiv)
+bartlett.test(faithPD ~ species, data = alphadiv)
+
+bartlett.test(sqrt(faithPD) ~ time, data = alphadiv)
+bartlett.test(sqrt(faithPD) ~ treatment, data = alphadiv)
+bartlett.test(sqrt(faithPD) ~ species, data = alphadiv) # sig
+# Log transformation does not make the faithPD data normal, but sqrt-transform does
+# Variances are equal for groups under un-transformed data and sqrt-transformed data
+# Non-Parametric Kruskal-Wallis test for untransformed or ANOVA for transformed?
+```
+
+### 3 Analysis
+#### Chao1 data (richness)
+Proceeding with sqrt-transformed richness data
+```{r rich}
+summary(aov(sqrt(richness) ~ time, data = alphadiv))
+summary(aov(sqrt(richness) ~ treatment, data = alphadiv)) # not sig
+summary(aov(sqrt(richness) ~ species, data = alphadiv))
+
+TukeyHSD(aov(sqrt(richness) ~ time, data = alphadiv))
+# TukeyHSD(aov(sqrt(richness) ~ treatment, data = alphadiv))
+TukeyHSD(aov(sqrt(richness) ~ species, data = alphadiv))
+```
+
+#### Simpson's index data (evenness)
+Proceeding with non-parametric kruskal wallis test from Simpsons data
+```{r even}
+kruskal.test(evenness ~ time, data = alphadiv)
+kruskal.test(evenness ~ treatment, data = alphadiv) # not sig
+kruskal.test(evenness ~ species, data = alphadiv) # not sig
+
+dunnTest(evenness ~ time, data = alphadiv, method = "bh")
+```
+#### Faith's phylogenetic diversity data (faithPD)
+Proceeding with sqrt-transformed faithPD data
+```{r faithPD}
+summary(aov(sqrt(faithPD) ~ time, data = alphadiv))
+summary(aov(sqrt(faithPD) ~ treatment, data = alphadiv)) # not sig
+summary(aov(sqrt(faithPD) ~ species, data = alphadiv))
+
+TukeyHSD(aov(sqrt(faithPD) ~ time, data = alphadiv))
+# TukeyHSD(aov(sqrt(faithPD) ~ treatment, data = alphadiv))
+TukeyHSD(aov(sqrt(faithPD) ~ species, data = alphadiv))
+```
+Check for interactions
+```{r int}
+summary(aov(sqrt(richness) ~ time*treatment*species, data = alphadiv))
+summary(aov(sqrt(faithPD) ~ time*treatment*species, data = alphadiv))
+# This interaction test with Kruskal wallis is not comparable to anova
+int <- interaction(alphadiv$time, alphadiv$treatment, alphadiv$species)
+kruskal.test(evenness ~ int, data = alphadiv)
+int_sig <- dunnTest(evenness ~ int, data = alphadiv, method = "bh")
+intdf <- as.data.frame(int_sig$res) 
+intdf <- as.data.frame(int_sig$res)
+new <- intdf[order(intdf$P.adj),]
+head(new) # only three significant interactions
+```
+
+### For Acropora only
+Subsetting the data to only include Acropora corals
+```{r}
+alphadiv <- alphadiv[which(alphadiv$species =="ACR"),]
+summary(alphadiv)
+```
+#### Chao1 data (richness)
+Proceeding with sqrt-transformed richness data
+```{r rich2}
+summary(aov(sqrt(richness) ~ time, data = alphadiv))
+summary(aov(sqrt(richness) ~ treatment, data = alphadiv)) # not sig
+
+TukeyHSD(aov(sqrt(richness) ~ time, data = alphadiv))
+# TukeyHSD(aov(sqrt(richness) ~ treatment, data = alphadiv))
+```
+
+#### Simpson's index data (evenness)
+Proceeding with non-parametric kruskal-wallis test for simpson's data
+```{r even2}
+kruskal.test(evenness ~ time, data = alphadiv)
+kruskal.test(evenness ~ treatment, data = alphadiv) # not sig
+
+dunnTest(evenness ~ time, data = alphadiv, method = "bh")
+```
+#### Faith's phylogenetic diversity data (faithPD)
+Proceeding with sqrt-transformed faithPD data
+```{r faithPD2}
+summary(aov(sqrt(faithPD) ~ time, data = alphadiv))
+summary(aov(sqrt(faithPD) ~ treatment, data = alphadiv)) # not sig
+
+TukeyHSD(aov(sqrt(faithPD) ~ time, data = alphadiv))
+# TukeyHSD(aov(sqrt(faithPD) ~ treatment, data = alphadiv))
+```
+Check for interactions
+```{r int2}
+summary(aov(sqrt(richness) ~ time*treatment, data = alphadiv))
+summary(aov(sqrt(faithPD) ~ time*treatment, data = alphadiv))
+# This interaction test with Kruskal wallis is not comparable to anova
+int <- interaction(alphadiv$time, alphadiv$treatment)
+kruskal.test(evenness ~ int, data = alphadiv)
+int_sig <- dunnTest(evenness ~ int, data = alphadiv, method = "bh")
+intdf <- as.data.frame(int_sig$res)
+new <- intdf[order(intdf$P.adj),]
+head(new) # no sig
+```
