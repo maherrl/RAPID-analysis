@@ -150,5 +150,5 @@ alphadiv$richness <- as.numeric(as.character(alphadiv$richness))
 alphadiv$evenness <- as.numeric(as.character(alphadiv$evenness))
 alphadiv$faithPD <- as.numeric(as.character(alphadiv$faithPD))
 head(alphadiv)
-# write.csv(alphadiv, file = "~/Box Sync/RAPID/RAPID-analysis/data/alphadiv.csv")
+#write.csv(alphadiv, file = "~/Box Sync/RAPID/RAPID-analysis/data/alphadiv.csv")
 ```
