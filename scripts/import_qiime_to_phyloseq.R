@@ -24,59 +24,50 @@ map = import_qiime_sample_data(mapfile)
 class(map)
 
 # Import tree
-tree = read_tree("~/Box Sync/RAPID/RAPID-analysis/data/tree.nwk")
+tree = read_tree("~/Box Sync/RAPID/RAPID-analysis/data/filt_tree.nwk")
 
-# In qiime2, I already removed mitochondria and chloroplasts, removed otus with < 10 occurrences and
-# present in less than 1 sample
-biomfile = "/Users/Becca/Box Sync/RAPID/biom/otu-table-no-mitochondria-no-chloroplast-min2-names-wtax-silva.biom"
+# In qiime2, I already removed mitochondria and chloroplasts, removed otus present in only a single sample
+# I also annotated the taxonomy with the Silva database
+biomfile = "~/Box Sync/RAPID/RAPID-analysis/data/otu-table-no-mitochondria-no-chloroplast-min2-names-wtax-silva.biom"
 biom = import_biom(biomfile, parseFunction = parse_taxonomy_default)
 
 qd = merge_phyloseq(map,tree,biom) 
+print(qd)
+##phyloseq-class experiment-level object
+##otu_table()   OTU Table:         [ 898 taxa and 280 samples ]
+##sample_data() Sample Data:       [ 280 samples by 12 sample variables ]
+##tax_table()   Taxonomy Table:    [ 898 taxa by 7 taxonomic ranks ]
+##phy_tree()    Phylogenetic Tree: [ 898 tips and 897 internal nodes ]
+
 
 # Changing the rank names of the phyloseq object
 colnames(tax_table(qd)) = c(k="Kingdom", p="Phylum", c="Class", o="Order",f="Family", g="Genus", s="Species")
 rank_names(qd)
 
-# Removing samples that have an NA in the metadata file
-samples_wna <- c("July2016.228.2", "July2016.251.2", "March2016.acr35", 
-                 "May2016.215poc", "negative", "positive")
+# Make a numeric factor into a categorical
+sample_data(qd)$time=factor(get_variable(qd,"time"))
+
+# prune NA samples
+samples_wna <- c("July2016.228.2", "July2016.228.1","July2016.251.2", "July2016.251.1", 
+                 "July2016.220.2" ,"July2016.220.1" ,"March2016.acr35", "positive",
+                 "July2016.294.1", "July2016.294.2")
 samples <- sample_names(qd)
 samples_nona <- setdiff(samples, samples_wna)
 qd <- prune_samples(samples_nona, qd)
+qd
 
-# Remove samples with less than 1000 reads
-qd <- prune_samples(sample_sums(qd) > 1000, qd)
-
-# Option to rarefy data
-#min_lib <- min(sample_sums(qd)) 
-#set.seed(400)
-#qd <- rarefy_even_depth(qd, sample.size = min_lib, verbose = FALSE, replace = TRUE)
-
-# Option to rarefy data
+# rarefy
 set.seed(400)
-qd <- rarefy_even_depth(qd, sample.size = 1778, verbose = FALSE, replace = TRUE)
+qd <- rarefy_even_depth(qd, sample.size = 881, verbose = FALSE, replace = TRUE)
+qd
 
-# Option to normalize rarefied data by species max. This places more weight on minor
-# players in the community
-#otus_max <- as(otu_table(qd), "matrix")
-#otus_max <- decostand(otus_max, method = "max", MARGIN = 1)
-#OTU_max <- otu_table(otus_max, taxa_are_rows = TRUE)
-#otu_table(qd) <- OTU_max
+# save rarefied phyloseq object
+save(qd, file = "~/Box Sync/RAPID/RAPID-analysis/data/qd_881.RData")
 
-# Option to normalize data: Normalization technique by proportion
-# qd = transform_sample_counts(qd, function(x) x/sum(x))
 
-# Export it to Qiime2
-#otu <- as(otu_table(qd), "matrix")
-#otu_biom <- make_biom(data=otu)
-#write_biom(otu_biom, "/Users/Becca/Box Sync/RAPID/RAPID-analysis/data/otu-table-prop.biom")
+# For differential abundance analyses (instead of rarefying)
+# Remove samples with less than 881 reads
+qd <- prune_samples(sample_sums(qd) > 880, qd)
+qd
+save(qd, file = "~/Box Sync/RAPID/RAPID-analysis/data/qd_DA.RData")
 
-# Make a numeric factor into a categorical
-sample_data(qd)$time=factor(get_variable(qd,"time"))
-##
-
-##
-# Save the Formal class phyloseq to an external file to load in other scripts (qd = qiimedata)
-# save(qd, file = "~/Box Sync/RAPID/RAPID-analysis/data/qd_prop.RData")
-save(qd, file = "~/Box Sync/RAPID/RAPID-analysis/data/qdunrar.RData")
-# The phyloseq object qd is now ready to use in diversity analyses
