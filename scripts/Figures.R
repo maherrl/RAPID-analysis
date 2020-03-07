@@ -104,11 +104,118 @@ otus_log <- decostand(otus_log, method = "log")
 OTU_log <- otu_table(otus_log, taxa_are_rows = TRUE)
 otu_table(qd) <- OTU_log
 
+# all corals by species
 qd_wu <- phyloseq::distance(qd, method = "wunifrac")
 nmds_wu <- metaMDSiter(qd_wu, k=2, trymax = 10000, maxit = 10000, autotransform=FALSE)
 
-a <- plot_ordination(qd, nmds_wu, color = "time") + geom_point(size = 2) + theme_classic() +
-  theme(legend.position = "left") + scale_colour_colorblind()
+# A
+a <- plot_ordination(qd, nmds_wu, color = "species") + 
+  geom_point(size = 2) + 
+  theme_classic() +
+  theme(legend.position = "left", legend.title = element_blank()) + 
+  scale_colour_colorblind() +
+  ggtitle("All corals")
+
+# B
+# extract distance to centroid
+sampledf <- data.frame(sample_data(qd))
+disp <- betadisper(qd_wu, sampledf$species, bias.adjust = TRUE)
+dispd <- as.data.frame(disp$distances)
+dispd <- cbind(dispd, sample_data(qd))
+colnames(dispd)[1] <- "distance"
+
+p <- position_dodge(0.8)
+b <- ggplot(dispd, aes(species, distance)) + 
+  geom_boxplot(aes(color = species, fill = species), outlier.colour = NULL, position = p) + 
+  stat_summary(geom = "crossbar", width = 0.7, fatten=0, color="white", position = p, 
+               fun.data = function(x){c(y=median(x), ymin=median(x), ymax=median(x))}) + 
+  theme_classic() + 
+  stat_summary(aes(color = species), geom = 'text', label = c("a","b","b"), fun.y = max, vjust = -1, size = 3) +
+  theme(legend.position = "none", 
+        axis.title.x = element_blank(),
+        axis.text.x = element_text(angle = 35, hjust = 1)) +
+  scale_y_continuous(expand = expand_scale(mult = c(0, .1))) +
+  labs(y = "Distance to Centroid") + 
+  scale_colour_colorblind() +
+  scale_fill_colorblind()
+
+# C
+# acr by time
+qd_acr <- subset_samples(qd, species == "ACR")
+qd_acr_wu <- phyloseq::distance(qd_acr, method = "wunifrac")
+nmds_acr_wu <- metaMDSiter(qd_acr_wu, k=2, trymax = 10000, maxit = 10000, autotransform=FALSE)
+
+c <- plot_ordination(qd_acr, nmds_acr_wu, color = "time") + 
+  geom_point(size = 2) + 
+  scale_color_manual(values=c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442"), 
+                    name=element_blank(),
+                    breaks=c("T0", "T1", "T2", "T3", "T6"),
+                    labels=c("Jan 16", "March 16", "May 16", "July 16", "Jan 17")) +
+  theme_classic() +
+  theme(legend.position = "left") +
+  ggtitle("Acropora")
+
+# D
+# extract distance to centroid
+sampledf <- data.frame(sample_data(qd_acr))
+dispa <- betadisper(qd_acr_wu, sampledf$time, bias.adjust = TRUE)
+dispad <- as.data.frame(dispa$distances)
+dispad <- cbind(dispad, sample_data(qd_acr))
+colnames(dispad)[1] <- "distance"
+
+p <- position_dodge(0.8)
+d <- ggplot(dispad, aes(time, distance)) + 
+  geom_boxplot(aes(color = time, fill = time), outlier.colour = NULL, position = p) + 
+  stat_summary(geom = "crossbar", width = 0.7, fatten=0, color="white", position = p, 
+               fun.data = function(x){c(y=median(x), ymin=median(x), ymax=median(x))}) + 
+  theme_classic() + 
+  stat_summary(aes(color = time), geom = 'text', label = c("a","ab","b","ab","c"), fun.y = max, vjust = -1, size = 3) +
+  theme(legend.position = "none", 
+        axis.title.x = element_blank(), 
+        axis.text.x = element_text(angle = 35, hjust = 1)) + 
+  labs(y = "Distance to Centroid") + 
+  scale_y_continuous(expand = expand_scale(mult = c(0, .1))) +
+  scale_colour_colorblind() +
+  scale_fill_colorblind() +
+  scale_x_discrete( breaks=c("T0", "T1", "T2", "T3", "T6"),
+                    labels=c("Jan 16", "March 16", "May 16", "July 16", "Jan 17"))
+
+# E
+qd_poc <- subset_samples(qd, species == "POC")
+qd_poc_wu <- phyloseq::distance(qd_poc, method = "wunifrac")
+nmds_poc_wu <- metaMDSiter(qd_poc_wu, k=2, trymax = 10000, maxit = 10000, autotransform=FALSE)
+
+e <- plot_ordination(qd, nmds_poc_wu, color = "time") + 
+  geom_point(size = 2) + 
+  scale_color_manual(values=c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442"), 
+                     name=element_blank(),
+                     breaks=c("T0", "T1", "T2", "T3", "T6"),
+                     labels=c("Jan 16", "March 16", "May 16", "July 16", "Jan 17")) +
+  theme_classic() +
+  theme(legend.position = "none") +
+  ggtitle("Pocillopora")
+
+# F
+qd_por <- subset_samples(qd, species == "POR")
+qd_por_wu <- phyloseq::distance(qd_por, method = "wunifrac")
+nmds_por_wu <- metaMDSiter(qd_por_wu, k=2, trymax = 10000, maxit = 10000, autotransform=FALSE)
+
+f <- plot_ordination(qd, nmds_por_wu, color = "time") + 
+  geom_point(size = 2) + 
+  scale_color_manual(values=c("#E69F00", "#56B4E9", "#009E73", "#F0E442"), 
+                     name=element_blank(),
+                     breaks=c("T0", "T1", "T2", "T3", "T6"),
+                     labels=c("Jan 16", "March 16", "May 16", "July 16", "Jan 17")) +
+  theme_classic() +
+  theme(legend.position = "none")+
+  ggtitle("Porites")
+
+A <- plot_grid(a,b, nrow = 1, rel_widths = c(1,0.3), labels = c("A","B"))
+B <- plot_grid(c,d, nrow = 1, rel_widths = c(1,0.4), labels = c("D","E"))
+C <- plot_grid(e,f, nrow =2, labels = c("C","F"))
+D <- plot_grid(A,B, nrow = 2)
+E <- plot_grid(D, C, ncol = 2, rel_widths = c(1,0.6))
+E
 
 # Extract axis coordinates
 mds1 <- as.data.frame(nmds_wu[["points"]])
@@ -291,5 +398,3 @@ c <- ggplot(dispd, aes(time, distance)) +
   scale_fill_colorblind()
 c
 plot_grid(a,c,b, nrow = 2, rel_heights = c(3,1), rel_widths = c(3,1))
-
-
