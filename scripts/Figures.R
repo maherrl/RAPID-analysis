@@ -71,27 +71,43 @@ alphadiv <- read.csv(file = "./data/alphadiv.csv")
 breakss <- c("T0","T1","T2","T3","T6")
 labelss <- c("Jan 16","March 16", "May 16", "July 16", "Jan 17")
 
-A <- ggplot(alphadiv, aes(x=time, y=richness)) +
+A <- ggplot(alphadiv, aes(x=time, y=richness, color = time)) +
   geom_boxplot(outlier.shape = NA, color = "gray35") +
-  geom_point(aes(color = species), position = position_jitter(width = .2, height = 0)) +
+  facet_grid(~species) + 
+  geom_point(aes(color = time), position = position_jitter(width = .2, height = 0)) +
   scale_x_discrete(breaks=breakss, labels=labelss) +
-  ylab("Chao1 Index") + xlab("Time") +
-  scale_colour_colorblind() + theme_bw()
-A
-B <- ggplot(alphadiv, aes(x=time, y=evenness)) +
+  ylab("Chao1 Index") +
+  scale_colour_colorblind() + 
+  theme_bw() +
+  theme(legend.position = "none",
+        axis.title.x = element_blank(),
+        axis.text.x = element_text(angle = 35, hjust = 1))
+
+B <- ggplot(alphadiv, aes(x=time, y=evenness, color = time)) +
   geom_boxplot(outlier.shape = NA, color = "gray35") +
-  geom_point(aes(color = species), position = position_jitter(width = .2, height = 0)) +
+  facet_grid(~species) + 
+  geom_point(aes(color = time), position = position_jitter(width = .2, height = 0)) +
   scale_x_discrete(breaks=breakss, labels=labelss) +
-  ylab("Simpson's Diversity") + xlab("Time") +
-  scale_colour_colorblind() + theme_bw()
-B
-C <- ggplot(alphadiv, aes(x=time, y=faithPD)) +
+  ylab("Simpson's Diversity Index") +
+  scale_colour_colorblind() + 
+  theme_bw() +
+  theme(legend.position = "none",
+        axis.title.x = element_blank(),
+        axis.text.x = element_text(angle = 35, hjust = 1))
+
+C <- ggplot(alphadiv, aes(x=time, y=faithPD, color = time)) +
   geom_boxplot(outlier.shape = NA, color = "gray35") +
-  geom_point(aes(color = species), position = position_jitter(width = .2, height = 0)) +
+  facet_grid(~species) + 
+  geom_point(aes(color = time), position = position_jitter(width = .2, height = 0)) +
   scale_x_discrete(breaks=breakss, labels=labelss) +
-  ylab("Faith's Phylogenetic Diversity") + xlab("Time") + 
-  scale_colour_colorblind() + theme_bw()
-C
+  ylab("Faith's Phylogenetic Diversity") +
+  scale_colour_colorblind() + 
+  theme_bw() +
+  theme(legend.position = "none",
+        axis.title.x = element_blank(),
+        axis.text.x = element_text(angle = 35, hjust = 1))
+
+plot_grid(A,B,C, nrow = 3, labels = c("A","B","C"))
 
 # Figure 3
 ###############################################################
