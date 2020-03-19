@@ -1,7 +1,7 @@
 ---
 title: "RAPID Calculate Alpha Diversity Statistics"
 author: "Becca Maher"
-date: "6/6/2019"
+date: "01/24/2020"
 output: html_document
 ---
 ## Script for calculating alpha diversity statistics and testing for significant differences with metadata variables
@@ -88,7 +88,9 @@ data_summary <- function(data, varname, groupnames){
 #### Load the data
 For all alpha and beta diversity statistics, I will be using the rarefied sOTU table. The table has been rarefied to 1778 sequences per sample.
 ```{r load}
-load("~/Box Sync/RAPID/RAPID-analysis/data/qd_rar.RData")
+load("~/Box Sync/RAPID/RAPID-analysis/data/qd_881.RData")
+qd
+sample_sums(qd)
 qd
 ```
 
@@ -150,5 +152,5 @@ alphadiv$richness <- as.numeric(as.character(alphadiv$richness))
 alphadiv$evenness <- as.numeric(as.character(alphadiv$evenness))
 alphadiv$faithPD <- as.numeric(as.character(alphadiv$faithPD))
 head(alphadiv)
-#write.csv(alphadiv, file = "~/Box Sync/RAPID/RAPID-analysis/data/alphadiv.csv")
+write.csv(alphadiv, file = "~/Box Sync/RAPID/RAPID-analysis/data/alphadiv.csv")
 ```

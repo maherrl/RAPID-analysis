@@ -77,9 +77,6 @@ Load the alphadiv.csv files created in the RAPID_alpha_statsA.Rmd script. First 
 ```{r load}
 alphadiv <- read.csv("~/Box Sync/RAPID/RAPID-analysis/data/alphadiv.csv")
 str(alphadiv)
-
-alphadiv <- subset(alphadiv, SampleID != "July2016.228.2" & SampleID != "July2016.251.2" & SampleID != "July2016.251.1")
-str(alphadiv)
 ```
 
 
@@ -90,329 +87,109 @@ str(alphadiv)
 data_summary(alphadiv, varname = "richness", groupnames = c("treatment"))
 data_summary(alphadiv, varname = "richness", groupnames = c("time"))
 data_summary(alphadiv, varname = "richness", groupnames = c("species"))
+data_summary(alphadiv, varname = "richness", groupnames = c("species", "time"))
 
 data_summary(alphadiv, varname = "evenness", groupnames = c("treatment"))
 data_summary(alphadiv, varname = "evenness", groupnames = c("time"))
 data_summary(alphadiv, varname = "evenness", groupnames = c("species"))
+data_summary(alphadiv, varname = "evenness", groupnames = c("species", "time"))
 
 data_summary(alphadiv, varname = "faithPD", groupnames = c("treatment"))
 data_summary(alphadiv, varname = "faithPD", groupnames = c("time"))
 data_summary(alphadiv, varname = "faithPD", groupnames = c("species"))
-
-```
-Looking for normality and homogeneity of group dispersions
-#### Richness
-```{r}
-# box plot of richness by species
-ggplot(alphadiv, aes(x = species, y = richness)) +  geom_boxplot()
-# box plot of richness by time
-ggplot(alphadiv, aes(x = time, y = richness)) +  geom_boxplot()
-# box plot of richness by treatment
-ggplot(alphadiv, aes(x = treatment, y = richness)) +  geom_boxplot()
-# outlier is acropora, T3, Nitrate
-# Testing for normality
-histogram(alphadiv$richness)
-qqnorm(alphadiv$richness)
-abline(0,1)
-shapiro.test(alphadiv$richness)
-histogram(log(alphadiv$richness))
-qqnorm(log(alphadiv$richness))
-abline(0,1)
-shapiro.test(log(alphadiv$richness))
-histogram(sqrt(alphadiv$richness))
-qqnorm(sqrt(alphadiv$richness))
-abline(0,1)
-shapiro.test(sqrt(alphadiv$richness))
-# test for homogeneity of group dispersions
-bartlett.test(sqrt(richness) ~ time, data = alphadiv)
-bartlett.test(sqrt(richness) ~ treatment, data = alphadiv)
-bartlett.test(sqrt(richness) ~ species, data = alphadiv)
-# richness data are normal with equal group variances with a sqrt transformation
-bartlett.test(richness ~ time, data = alphadiv)
-bartlett.test(richness ~ treatment, data = alphadiv)
-bartlett.test(richness ~ species, data = alphadiv)
-# all significant without transformation
-```
-#### Evenness
-```{r}
-# box plot of evenness by species
-ggplot(alphadiv, aes(x = species, y = evenness)) +  geom_boxplot()
-# box plot of evenness by time
-ggplot(alphadiv, aes(x = time, y = evenness)) +  geom_boxplot()
-# box plot of evenness by treatment
-ggplot(alphadiv, aes(x = treatment, y = evenness)) +  geom_boxplot()
-# outlier is acropora, T3, Nitrate
-# Testing for normality
-histogram(alphadiv$evenness)
-qqnorm(alphadiv$evenness)
-abline(0,1)
-shapiro.test(alphadiv$evenness) # non-normal
-histogram(asinTransform(alphadiv$evenness))
-qqnorm(asinTransform(alphadiv$evenness))
-abline(0,1)
-shapiro.test(asinTransform(alphadiv$evenness)) # non-normal
-# test for homogeneity of group dispersions
-bartlett.test(evenness ~ time, data = alphadiv)
-bartlett.test(evenness ~ treatment, data = alphadiv)
-bartlett.test(evenness ~ species, data = alphadiv)
-# AsinTransformation does not make the evenness data normal
-# Variances are equal for groups under un-transformed data
-# will proceed with a non-Parametric Kruskal-Wallis test for evenness data
-```
-#### Faith's phylogenetic diversity
-```{r}
-# box plot of faithPD by species
-ggplot(alphadiv, aes(x = species, y = faithPD)) +  geom_boxplot()
-# box plot of faithPD by time
-ggplot(alphadiv, aes(x = time, y = faithPD)) +  geom_boxplot()
-# box plot of faithPD by treatment
-ggplot(alphadiv, aes(x = treatment, y = faithPD)) +  geom_boxplot()
-# outlier is acropora, T3, Nitrate
-# Testing for normality
-histogram(alphadiv$faithPD)
-qqnorm(alphadiv$faithPD)
-abline(0,1)
-shapiro.test(alphadiv$faithPD) # non-normal
-histogram(sqrt(alphadiv$faithPD))
-qqnorm(sqrt(alphadiv$faithPD))
-abline(0,1)
-shapiro.test(sqrt(alphadiv$faithPD)) # non-normal
-# test for homogeneity of group dispersions
-bartlett.test(faithPD ~ time, data = alphadiv)
-bartlett.test(faithPD ~ treatment, data = alphadiv)
-bartlett.test(faithPD ~ species, data = alphadiv)
-
-bartlett.test(sqrt(faithPD) ~ time, data = alphadiv)
-bartlett.test(sqrt(faithPD) ~ treatment, data = alphadiv)
-bartlett.test(sqrt(faithPD) ~ species, data = alphadiv) # sig
-# Log transformation does not make the faithPD data normal, but sqrt-transform does
-# Variances are equal for groups under un-transformed data
-# Variances are equal for groups under sqrt-transformed data except for time
-# Non-Parametric Kruskal-Wallis test
+data_summary(alphadiv, varname = "faithPD", groupnames = c("species", "time"))
 ```
 
-### 2 Analysis with linear-mixed effects models
+### 3 Analysis with linear-mixed effects models
 
 ```{r}
 # Chao1 Index
 # include random effect
 lmerR <- lmer(sqrt(richness)~ time*treatment*species + (1|indiv), data = alphadiv)
-lmR <- lm(sqrt(richness)~ time*treatment*species, data = alphadiv)
-dotplot(ranef(lmerR, condVar = TRUE))
-ranova(lmerR)
-AICc(lmerR,lmR) # lmerR has the lower AIC
-anova(lmerR,lmR)
 
 anova(lmerR)
 summary(lmerR)
-anova(lmR)
 var.plots(lmerR)
 normality.plots(lmerR)
-# post hoc tests
+
+# post hoc tests for time by species
+lmerR1 <- lmer(sqrt(richness)~ time * species + (1|indiv), data = alphadiv)
+anova(lmerR1)
+
+emmeans(lmerR1, list(pairwise ~ time * species), adjust = "tukey")
+
+# within species models
+alphadiv_acr <- alphadiv[which(alphadiv$species == "ACR"),]
+lmerA <- lmer(sqrt(richness) ~ time + (1|indiv), data = alphadiv_acr)
+anova(lmerA)
+emmeans(lmerA, list(pairwise ~ time), adjust = "tukey")
+
+alphadiv_poc <- alphadiv[which(alphadiv$species == "POC"),]
+lmerP <- lmer(sqrt(richness) ~ time + (1|indiv), data = alphadiv_poc)
+anova(lmerP)
+emmeans(lmerP, list(pairwise ~ time), adjust = "tukey")
+
+alphadiv_por <- alphadiv[which(alphadiv$species == "POR"),]
+lmerR <- lmer(sqrt(richness) ~ time + (1|indiv), data = alphadiv_por)
+anova(lmerR)
 emmeans(lmerR, list(pairwise ~ time), adjust = "tukey")
-emmeans(lmerR, list(pairwise ~ species), adjust = "tukey")
-lmerRe <- emmeans(lmerR, list(pairwise ~ time*species), adjust = "tukey")
-lmerRep <- as.data.frame(lmerRe$`pairwise differences of time, species`)
-lmerRep <- lmerRep[order(lmerRep$p.value),]
-head(lmerRep, n = 10L)
 
-lmR <- lm(sqrt(richness) ~ time*treatment*species, data = alphadiv)
-anova(lmR)
-lmRe <- emmeans(lmR, list(pairwise ~ time*species), adjust = "tukey")
-lmRep <- as.data.frame(lmRe$`pairwise differences of time, species`)
-lmRep <- lmRep[order(lmRep$p.value),]
-head(lmRep, n = 11L)
+```
 
-
+```{r}
 # Simpson's Index
-# do not include random effect
 lmerR <- lmer(asinTransform(evenness)~ time*treatment*species + (1|indiv), data = alphadiv)
-lmR <- lm(asinTransform(evenness)~ time*treatment*species, data = alphadiv)
-dotplot(ranef(lmerR, condVar = TRUE))
-ranova(lmerR)
-AICc(lmerR,lmR)
-anova(lmerR,lmR)
-
 anova(lmerR)
 summary(lmerR) # random effect variance explains .06
-anova(lmR)
+
 var.plots(lmerR)
-var.plots(lmR)
 normality.plots(lmerR)
-normality.plots(lmR)
-# post hoc tests
+
+# post hoc tests for main effects
+lmerR1 <- lmer(asinTransform(evenness) ~ time*species + (1|indiv), data = alphadiv)
+anova(lmerR1)
+
+emmeans(lmerR1, list(pairwise ~ time), adjust = "tukey")
+
+# within species models
+lmerA <- lmer(asinTransform(evenness) ~ time + (1|indiv), data = alphadiv_acr)
+anova(lmerA)
+emmeans(lmerA, list(pairwise ~ time), adjust = "tukey")
+
+lmerP <- lmer(asinTransform(evenness) ~ time + (1|indiv), data = alphadiv_poc)
+anova(lmerP)
+emmeans(lmerP, list(pairwise ~ time), adjust = "tukey")
+
+lmerR <- lmer(asinTransform(evenness) ~ time + (1|indiv), data = alphadiv_por)
+anova(lmerR)
 emmeans(lmerR, list(pairwise ~ time), adjust = "tukey")
-emmeans(lmerR, list(pairwise ~ species), adjust = "tukey")
-lmerRe <- emmeans(lmerR, list(pairwise ~ time*species), adjust = "tukey")
-lmerRep <- as.data.frame(lmerRe$`pairwise differences of time, species`)
-lmerRep <- lmerRep[order(lmerRep$p.value),]
-head(lmerRep, n = 10L)
+```
 
-lmRe <- emmeans(lmR, list(pairwise ~ time*species), adjust = "tukey")
-lmRep <- as.data.frame(lmRe$`pairwise differences of time, species`)
-lmRep <- lmRep[order(lmRep$p.value),]
-head(lmRep, n = 10L)
-
+```{r}
 # Faith's PD
 lmerR <- lmer(sqrt(faithPD)~ time*treatment*species + (1|indiv), data = alphadiv)
-lmR <- lm(sqrt(faithPD)~ time*treatment*species, data = alphadiv)
-dotplot(ranef(lmerR, condVar = TRUE))
-ranova(lmerR)
-AICc(lmerR,lmR)
-anova(lmerR,lmR)
-
 anova(lmerR)
-summary(lmerR) # random effect of individual explains 1.503 of the variance
-anova(lmR)
-var.plots(lmerR)
-var.plots(lmR)
-normality.plots(lmerR)
-normality.plots(lmR)
-# post hoc tests
-emmeans(lmerR, list(pairwise ~ time), adjust = "tukey")
-emmeans(lmerR, list(pairwise ~ species), adjust = "tukey")
-lmerRe <- emmeans(lmerR, list(pairwise ~ time*species), adjust = "tukey")
-lmerRep <- as.data.frame(lmerRe$`pairwise differences of time, species`)
-lmerRep <- lmerRep[order(lmerRep$p.value),]
-head(lmerRep, n = 10L)
+summary(lmerR) # random effect variance explains .06
 
-lmRe <- emmeans(lmR, list(pairwise ~ time*species), adjust = "tukey")
-lmRep <- as.data.frame(lmRe$`pairwise differences of time, species`)
-lmRep <- lmRep[order(lmRep$p.value),]
-head(lmRep, n = 10L)
-```
-
-### 3 Analysis with one-way ANOVA and Kruskal-Wallis
-#### Chao1 data (richness)
-Proceeding with sqrt-transformed richness data
-```{r rich}
-#summary(aov(sqrt(richness) ~ time, data = alphadiv))
-#summary(aov(sqrt(richness) ~ treatment, data = alphadiv)) # not sig
-#summary(aov(sqrt(richness) ~ species, data = alphadiv))
-
-#aov(sqrt(richness) ~ time*species*treatment + Error(indiv), data = alphadiv)
-# TukeyHSD(aov(sqrt(richness) ~ treatment, data = alphadiv))
-#TukeyHSD(aov(sqrt(richness) ~ time, data = alphadiv))
-#TukeyHSD(aov(sqrt(richness) ~ species, data = alphadiv)) # doesn't work bc of unbalanced design
-```
-
-#### Simpson's index data (evenness)
-Proceeding with non-parametric kruskal wallis test from Simpsons data
-```{r even}
-kruskal.test(evenness ~ time, data = alphadiv)
-kruskal.test(evenness ~ treatment, data = alphadiv) # not sig
-kruskal.test(evenness ~ species, data = alphadiv) # not sig
-
-dunnTest(evenness ~ time, data = alphadiv, method = "bh")
-
-summary(aov(asinTransform(evenness) ~ time, data = alphadiv))
-summary(aov(asinTransform(evenness) ~ treatment, data = alphadiv)) # not sig
-summary(aov(asinTransform(evenness) ~ species, data = alphadiv)) # not sig
-summary(aov(asinTransform(evenness) ~ time*treatment*species, data = alphadiv))
-summary(aov(asinTransform(evenness) ~ time + species, data = alphadiv))
-TukeyHSD(aov(asinTransform(evenness) ~ time, data = alphadiv))
-```
-#### Faith's phylogenetic diversity data (faithPD)
-Proceeding with sqrt-transformed faithPD data
-```{r faithPD}
-kruskal.test(faithPD ~ time, data = alphadiv)
-kruskal.test(faithPD ~ treatment, data = alphadiv) # not sig
-kruskal.test(faithPD ~ species, data = alphadiv) # sig
-
-dunnTest(faithPD ~ time, data = alphadiv, method = "bh")
-dunnTest(faithPD ~ species, data = alphadiv, method = "bh")
-
-summary(aov(sqrt(faithPD) ~ time, data = alphadiv))
-summary(aov(sqrt(faithPD) ~ treatment, data = alphadiv)) # not sig
-summary(aov(sqrt(faithPD) ~ species, data = alphadiv))
-
-TukeyHSD(aov(sqrt(faithPD) ~ time, data = alphadiv))
-# TukeyHSD(aov(sqrt(faithPD) ~ treatment, data = alphadiv))
-TukeyHSD(aov(sqrt(faithPD) ~ species, data = alphadiv))
-```
-Check for interactions
-```{r int}
-summary(aov(sqrt(richness) ~ time*treatment*species, data = alphadiv))
-summary(aov(sqrt(faithPD) ~ time*treatment*species, data = alphadiv))
-summary(aov(asinTransform(evenness) ~ time*treatment*species, data = alphadiv))
-# This interaction test with Kruskal wallis is not comparable to anova
-int <- interaction(alphadiv$time, alphadiv$treatment, alphadiv$species)
-kruskal.test(evenness ~ int, data = alphadiv)
-int_sig <- dunnTest(evenness ~ int, data = alphadiv, method = "bh")
-intdf <- as.data.frame(int_sig$res) 
-intdf <- as.data.frame(int_sig$res)
-head(new) # only three significant interactions
-```
-
-### For Acropora only and removing July data
-Subsetting the data to only include Acropora corals
-```{r}
-alphadiv_acr <- alphadiv[which(alphadiv$species =="ACR"),]
-alphadiv_acr_noj <- subset(alphadiv_acr, time != "T3")
-summary(alphadiv_acr_noj)
-alphadiv <- alphadiv_acr_noj
-dim(alphadiv)
-```
-#### Chao1 data (richness)
-Proceeding with sqrt-transformed richness data
-```{r rich2}
-lmerR <- lmer(sqrt(richness)~ time*treatment + (1|indiv), data = alphadiv)
-
-anova(lmerR)
-summary(lmerR)
 var.plots(lmerR)
 normality.plots(lmerR)
-# post hoc tests
-emmeans(lmerR, list(pairwise ~ time), adjust = "tukey")
-emmeans(lmerR, list(pairwise ~ treatment), adjust = "tukey")
-# Old ANOVAs
-summary(aov(sqrt(richness) ~ time, data = alphadiv_acr))
-summary(aov(sqrt(richness) ~ treatment, data = alphadiv_acr)) # not sig
 
-TukeyHSD(aov(sqrt(richness) ~ time, data = alphadiv_acr))
-# TukeyHSD(aov(sqrt(richness) ~ treatment, data = alphadiv_acr))
-```
+# post hoc tests for main effects
+lmerR1 <- lmer(sqrt(faithPD) ~ time * species + (1|indiv), data = alphadiv)
+anova(lmerR1)
 
-#### Simpson's index data (evenness)
-Proceeding with non-parametric kruskal-wallis test for simpson's data
-```{r even2}
-lmerR <- lmer(asinTransform(evenness)~ time*treatment + (1|indiv), data = alphadiv)
+emmeans(lmerR1, list(pairwise ~ time), adjust = "tukey")
 
+# within species models
+lmerA <- lmer(sqrt(faithPD) ~ time + (1|indiv), data = alphadiv_acr)
+anova(lmerA)
+emmeans(lmerA, list(pairwise ~ time), adjust = "tukey")
+
+lmerP <- lmer(sqrt(faithPD) ~ time + (1|indiv), data = alphadiv_poc)
+anova(lmerP)
+emmeans(lmerP, list(pairwise ~ time), adjust = "tukey")
+
+lmerR <- lmer(sqrt(faithPD) ~ time + (1|indiv), data = alphadiv_por)
 anova(lmerR)
-summary(lmerR)
-var.plots(lmerR)
-normality.plots(lmerR)
-# post hoc tests
 emmeans(lmerR, list(pairwise ~ time), adjust = "tukey")
-
-# Old ANOVAs
-kruskal.test(evenness ~ time, data = alphadiv_acr)
-kruskal.test(evenness ~ treatment, data = alphadiv_acr) # not sig
-
-dunnTest(evenness ~ time, data = alphadiv_acr, method = "bh")
-
-summary(aov(asinTransform(evenness) ~ time, data = alphadiv_acr))
-summary(aov(asinTransform(evenness) ~ treatment, data = alphadiv_acr)) # not sig
-
-TukeyHSD(aov(asinTransform(evenness) ~ time, data = alphadiv_acr))
-# TukeyHSD(aov(asinTransform(evenness) ~ treatment, data = alphadiv_acr))
-```
-#### Faith's phylogenetic diversity data (faithPD)
-Proceeding with sqrt-transformed faithPD data
-```{r faithPD2}
-lmerR <- lmer(sqrt(faithPD)~ time*treatment + (1|indiv), data = alphadiv)
-
-anova(lmerR)
-summary(lmerR)
-var.plots(lmerR)
-normality.plots(lmerR)
-# post hoc tests
-emmeans(lmerR, list(pairwise ~ time), adjust = "tukey")
-
-#Old ANOVAs
-summary(aov(sqrt(faithPD) ~ time, data = alphadiv_acr))
-summary(aov(sqrt(faithPD) ~ treatment, data = alphadiv_acr)) # not sig
-
-TukeyHSD(aov(sqrt(faithPD) ~ time, data = alphadiv_acr))
-# TukeyHSD(aov(sqrt(faithPD) ~ treatment, data = alphadiv_acr))
 ```

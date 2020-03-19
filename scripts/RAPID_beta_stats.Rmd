@@ -15,8 +15,6 @@ library('phyloseq'); packageVersion('phyloseq')
 library('vegan'); packageVersion('vegan')
 library("usedist")
 
-# set working directory-------------------
-#setwd("~/Box Sync/RAPID-analysis/")
 
 ## functions----------------------
 pairwise.adonis.dm <- function(x,factors,stratum=NULL,p.adjust.m="bonferroni",perm=999){
@@ -66,14 +64,8 @@ pairwise.adonis.dm <- function(x,factors,stratum=NULL,p.adjust.m="bonferroni",pe
 ```
 
 ```{r}
-## Data Analysis----------------------------
-
 # First import qd object, this is the phyloseq object from the import_qiime_to_phyloseq.R
-load(file = "~/Box Sync/RAPID/RAPID-analysis/data/qd_rar.RData")
-samples_wna <- c("July2016.228.2", "July2016.251.2", "July2016.251.1")
-samples <- sample_names(qd)
-samples_nona <- setdiff(samples, samples_wna)
-qd <- prune_samples(samples_nona, qd)
+load(file = "~/Box Sync/RAPID/RAPID-analysis/data/qd_881.RData")
 qd
 ```
 
@@ -103,68 +95,27 @@ qd_bj <- distance(qd, method = "jaccard", binary =TRUE)
 # Make a data frame from the sample_data
 sampledf <- data.frame(sample_data(qd))
 ```
-#### Time
+
+#### Interaction
 ```{r}
-# Adonis individual tests
-adonis(qd_bc ~ time, data = sampledf)
-adonis(qd_bj ~ time, data = sampledf)
-adonis(qd_wu ~ time, data = sampledf)
-adonis(qd_un ~ time, data = sampledf)
+# Adonis test for between group diversity, with full formula
+adonis(qd_bc ~ time*species*treatment, data = sampledf) # sig: time, species, time:species
+adonis(qd_bj ~ time*species*treatment, data = sampledf) # sig: time, species, time:species
+adonis(qd_wu ~ time*species*treatment, data = sampledf) # sig: time, species
+adonis(qd_un ~ time*species*treatment, data = sampledf) # sig: time, species, time:species
+```
+Pairwise comparisons
+```{r}
 # all significant
 pairwise.adonis.dm(qd_bc, sample_data(qd)$time, p.adjust.m = "fdr")
 pairwise.adonis.dm(qd_bj, sample_data(qd)$time, p.adjust.m = "fdr")
 pairwise.adonis.dm(qd_wu, sample_data(qd)$time, p.adjust.m = "fdr")
 pairwise.adonis.dm(qd_un, sample_data(qd)$time, p.adjust.m = "fdr")
-```
-#### Treatment
-```{r}
-adonis(qd_bc ~ treatment, data = sampledf)
-adonis(qd_bj ~ treatment, data = sampledf)
-adonis(qd_wu ~ treatment, data = sampledf)
-adonis(qd_un ~ treatment, data = sampledf)
-# all non-significant
-```
-#### Species
-```{r}
-# Adonis won't run on samples that have an NA for species
-# So I subset the dist to get rid of the samples without a species ID
-samples_wna <- c("July2016.228.2", "July2016.251.2", "July2016.251.1")
-samples <- sample_names(qd)
-samples_nona <- setdiff(samples, samples_wna)
-qd_bc_sub <- dist_subset(qd_bc, samples_nona)
-qd_bj_sub <- dist_subset(qd_bj, samples_nona)
-qd_wu_sub <- dist_subset(qd_wu, samples_nona)
-qd_un_sub <- dist_subset(qd_un, samples_nona)
-
-adonis(qd_bc_sub ~ species, data = sampledf)
-adonis(qd_bj_sub ~ species, data = sampledf)
-adonis(qd_wu_sub ~ species, data = sampledf)
-adonis(qd_un_sub ~ species, data = sampledf)
-
-sampledf_na <- subset(sampledf, sample.id != "July2016.228.2" & sample.id != "July2016.251.2" & sample.id != "July2016.251.1")
-
 # All significant
-pairwise.adonis.dm(qd_bc_sub, sampledf_na$species, p.adjust.m = "fdr")
-pairwise.adonis.dm(qd_bj_sub, sampledf_na$species, p.adjust.m = "fdr")
-pairwise.adonis.dm(qd_wu_sub, sampledf_na$species, p.adjust.m = "fdr")
-pairwise.adonis.dm(qd_un_sub, sampledf_na$species, p.adjust.m = "fdr")
-```
-#### Nutrient
-Treatment was control or nutrient (urea or nitrate)
-```{r}
-adonis(qd_bc ~ nutrient, data = sampledf)
-adonis(qd_bj ~ nutrient, data = sampledf)
-adonis(qd_wu ~ nutrient, data = sampledf)
-adonis(qd_un ~ nutrient, data = sampledf)
-# No significant results
-```
-#### Interaction
-```{r}
-# Adonis test for between group diversity, with full formula
-adonis(qd_bc_sub ~ time*species*treatment, data = sampledf) # sig: time, species, time:species
-adonis(qd_bj_sub ~ time*species*treatment, data = sampledf) # sig: time, species, time:species
-adonis(qd_wu_sub ~ time*species*treatment, data = sampledf) # sig: time, species
-adonis(qd_un_sub ~ time*species*treatment, data = sampledf) # sig: time, species, time:species
+pairwise.adonis.dm(qd_bc, sampledf$species, p.adjust.m = "fdr")
+pairwise.adonis.dm(qd_bj, sampledf$species, p.adjust.m = "fdr")
+pairwise.adonis.dm(qd_wu, sampledf$species, p.adjust.m = "fdr")
+pairwise.adonis.dm(qd_un, sampledf$species, p.adjust.m = "fdr")
 ```
 
 ### PERMDISPs
@@ -225,81 +176,171 @@ p.adjust(permutest(betadisper(qd_wu, sampledf$time.trt,
 ## 3 Analysis of log transformed Acropora data
 ```{r}
 # subset by species
-qd <- subset_samples(qd, species =="ACR")
-qd <- subset_samples(qd, time != "T3")
-qd
-#qd <- subset_samples(qd, species =="POR")
-#qd <- subset_samples(qd, time == "T2")
+qd_acr <- subset_samples(qd, species =="ACR")
+qd_acr
 ```
 
 Calculate distance matrices
 ```{r}
 # Calculate all four distance matrices: weighted unifrac, unweighted unifrac, bray curtis, binary jaccard
-qd_wu <- phyloseq::distance(qd, method = "wunifrac")
-qd_un <- phyloseq::distance(qd, method = "unifrac")
-qd_bc <- phyloseq::distance(qd, method = "bray")
-qd_bj <- distance(qd, method = "jaccard", binary =TRUE)
+qd_acr_wu <- phyloseq::distance(qd_acr, method = "wunifrac")
+qd_acr_un <- phyloseq::distance(qd_acr, method = "unifrac")
+qd_acr_bc <- phyloseq::distance(qd_acr, method = "bray")
+qd_acr_bj <- distance(qd_acr, method = "jaccard", binary =TRUE)
 ```
 
 ### PERMANOVAs
-```{r cars}
+```{r }
 # PERMANOVA's with Adonis -  Permutational Multivariate Analasis of Variance
 # Make a data frame from the sample_data
-sampledf <- data.frame(sample_data(qd))
-```
-#### Time
-```{r}
-# Adonis individual tests
-adonis(qd_bc ~ time, data = sampledf)
-adonis(qd_bj ~ time, data = sampledf)
-adonis(qd_wu ~ time, data = sampledf)
-adonis(qd_un ~ time, data = sampledf)
-# all significant
-# pairwise tests
-pairwise.adonis.dm(qd_bc, sample_data(qd)$time, p.adjust.m = "fdr")
-pairwise.adonis.dm(qd_bj, sample_data(qd)$time, p.adjust.m = "fdr")
-pairwise.adonis.dm(qd_wu, sample_data(qd)$time, p.adjust.m = "fdr")
-pairwise.adonis.dm(qd_un, sample_data(qd)$time, p.adjust.m = "fdr")
-```
-#### Treatment
-```{r}
-adonis(qd_bc ~ treatment, data = sampledf)
-adonis(qd_bj ~ treatment, data = sampledf)
-adonis(qd_wu ~ treatment, data = sampledf)
-adonis(qd_un ~ treatment, data = sampledf)
-# all non significant
+sampledf <- data.frame(sample_data(qd_acr))
 ```
 #### Interaction
 ```{r}
-adonis(qd_bc ~ time*treatment, data = sampledf) # time
-adonis(qd_bj ~ time*treatment, data = sampledf) # time
-adonis(qd_wu ~ time*treatment, data = sampledf) # time
-adonis(qd_un ~ time*treatment, data = sampledf) # time
+adonis(qd_acr_bc ~ time*treatment, data = sampledf) # time
+adonis(qd_acr_bj ~ time*treatment, data = sampledf) # time
+adonis(qd_acr_wu ~ time*treatment, data = sampledf) # time
+adonis(qd_acr_un ~ time*treatment, data = sampledf) # time
 ```
+#### Pairwise
+```{r}
+# pairwise tests
+pairwise.adonis.dm(qd_acr_bc, sample_data(qd_acr)$time, p.adjust.m = "fdr")
+pairwise.adonis.dm(qd_acr_bj, sample_data(qd_acr)$time, p.adjust.m = "fdr")
+pairwise.adonis.dm(qd_acr_wu, sample_data(qd_acr)$time, p.adjust.m = "fdr")
+pairwise.adonis.dm(qd_acr_un, sample_data(qd_acr)$time, p.adjust.m = "fdr")
+```
+
+
 ### PERMDISPs
 #### Treatment
 ```{r}
 # PERMDISP with betadisper - Multivariate Homogeneity of group dispersions
-anova(betadisper(qd_bc, sampledf$treatment, bias.adjust = TRUE)) # significant
-anova(betadisper(qd_bj, sampledf$treatment, bias.adjust = TRUE))
-anova(betadisper(qd_wu, sampledf$treatment, bias.adjust = TRUE))
-anova(betadisper(qd_un, sampledf$treatment, bias.adjust = TRUE))
+anova(betadisper(qd_acr_bc, sampledf$treatment, bias.adjust = TRUE)) # significant
+anova(betadisper(qd_acr_bj, sampledf$treatment, bias.adjust = TRUE))
+anova(betadisper(qd_acr_wu, sampledf$treatment, bias.adjust = TRUE))
+anova(betadisper(qd_acr_un, sampledf$treatment, bias.adjust = TRUE))
 # pairwise
-p.adjust(permutest(betadisper(qd_bc, sampledf$treatment, 
+p.adjust(permutest(betadisper(qd_acr_wu, sampledf$treatment, 
                               bias.adjust = TRUE), 
                    pairwise=TRUE)$pairwise$permuted, method = 'fdr')
 ```
 #### Time
 ```{r}
-anova(betadisper(qd_bc, sampledf$time, bias.adjust = TRUE))
-anova(betadisper(qd_bj, sampledf$time, bias.adjust = TRUE)) # sig
-anova(betadisper(qd_wu, sampledf$time, bias.adjust = TRUE)) # sig
-anova(betadisper(qd_un, sampledf$time, bias.adjust = TRUE))
+anova(betadisper(qd_acr_bc, sampledf$time, bias.adjust = TRUE))
+anova(betadisper(qd_acr_bj, sampledf$time, bias.adjust = TRUE)) # sig
+anova(betadisper(qd_acr_wu, sampledf$time, bias.adjust = TRUE)) # sig
+anova(betadisper(qd_acr_un, sampledf$time, bias.adjust = TRUE))
 # pairwise
-p.adjust(permutest(betadisper(qd_bj, sampledf$time, 
+p.adjust(permutest(betadisper(qd_acr_bj, sampledf$time, 
                               bias.adjust = TRUE), 
                    pairwise=TRUE)$pairwise$permuted, method = 'fdr')
-p.adjust(permutest(betadisper(qd_wu, sampledf$time, 
+p.adjust(permutest(betadisper(qd_acr_wu, sampledf$time, 
                               bias.adjust = TRUE), 
                    pairwise=TRUE)$pairwise$permuted, method = 'fdr')
 ```
+
+## 4 Analysis of log transformed Pocillopora data
+```{r}
+# subset by species
+qd_poc <- subset_samples(qd, species =="POC")
+qd_poc
+```
+
+Calculate distance matrices
+```{r}
+# Calculate all four distance matrices: weighted unifrac, unweighted unifrac, bray curtis, binary jaccard
+qd_poc_wu <- phyloseq::distance(qd_poc, method = "wunifrac")
+qd_poc_un <- phyloseq::distance(qd_poc, method = "unifrac")
+qd_poc_bc <- phyloseq::distance(qd_poc, method = "bray")
+qd_poc_bj <- distance(qd_poc, method = "jaccard", binary =TRUE)
+```
+
+### PERMANOVAs
+```{r}
+# PERMANOVA's with Adonis -  Permutational Multivariate Analasis of Variance
+# Make a data frame from the sample_data
+sampledf <- data.frame(sample_data(qd_poc))
+```
+#### Interaction
+```{r}
+adonis(qd_poc_bc ~ time*treatment, data = sampledf) # time
+adonis(qd_poc_bj ~ time*treatment, data = sampledf) # time
+adonis(qd_poc_wu ~ time*treatment, data = sampledf) # time
+adonis(qd_poc_un ~ time*treatment, data = sampledf) # time
+```
+#### Pairwise
+```{r}
+# pairwise tests
+pairwise.adonis.dm(qd_poc_bc, sample_data(qd_poc)$time, p.adjust.m = "fdr")
+pairwise.adonis.dm(qd_poc_bj, sample_data(qd_poc)$time, p.adjust.m = "fdr")
+pairwise.adonis.dm(qd_poc_wu, sample_data(qd_poc)$time, p.adjust.m = "fdr")
+pairwise.adonis.dm(qd_poc_un, sample_data(qd_poc)$time, p.adjust.m = "fdr")
+```
+
+### PERMDISPs
+#### Time
+```{r}
+anova(betadisper(qd_poc_bc, sampledf$time, bias.adjust = TRUE))
+anova(betadisper(qd_poc_bj, sampledf$time, bias.adjust = TRUE)) # sig
+anova(betadisper(qd_poc_wu, sampledf$time, bias.adjust = TRUE)) # sig
+anova(betadisper(qd_poc_un, sampledf$time, bias.adjust = TRUE))
+# pairwise
+p.adjust(permutest(betadisper(qd_poc_bj, sampledf$time, 
+                              bias.adjust = TRUE), 
+                   pairwise=TRUE)$pairwise$permuted, method = 'fdr')
+p.adjust(permutest(betadisper(qd_poc_wu, sampledf$time, 
+                              bias.adjust = TRUE), 
+                   pairwise=TRUE)$pairwise$permuted, method = 'fdr')
+## 5 Analysis of log transformed Porites data
+```{r}
+# subset by species
+qd_por <- subset_samples(qd, species =="POR")
+qd_por
+```
+
+Calculate distance matrices
+```{r}
+# Calculate all four distance matrices: weighted unifrac, unweighted unifrac, bray curtis, binary jaccard
+qd_por_wu <- phyloseq::distance(qd_por, method = "wunifrac")
+qd_por_un <- phyloseq::distance(qd_por, method = "unifrac")
+qd_por_bc <- phyloseq::distance(qd_por, method = "bray")
+qd_por_bj <- distance(qd_por, method = "jaccard", binary =TRUE)
+```
+
+### PERMANOVAs
+```{r}
+# PERMANOVA's with Adonis -  Permutational Multivariate Analasis of Variance
+# Make a data frame from the sample_data
+sampledf <- data.frame(sample_data(qd_por))
+```
+#### Interaction
+```{r}
+adonis(qd_por_bc ~ time*treatment, data = sampledf) # time
+adonis(qd_por_bj ~ time*treatment, data = sampledf) # time
+adonis(qd_por_wu ~ time*treatment, data = sampledf) # time
+adonis(qd_por_un ~ time*treatment, data = sampledf) # time
+```
+#### Pairwise
+```{r}
+# pairwise tests
+pairwise.adonis.dm(qd_por_bc, sample_data(qd_por)$time, p.adjust.m = "fdr")
+pairwise.adonis.dm(qd_por_bj, sample_data(qd_por)$time, p.adjust.m = "fdr")
+pairwise.adonis.dm(qd_por_wu, sample_data(qd_por)$time, p.adjust.m = "fdr")
+pairwise.adonis.dm(qd_por_un, sample_data(qd_por)$time, p.adjust.m = "fdr")
+```
+
+### PERMDISPs
+#### Time
+```{r}
+anova(betadisper(qd_por_bc, sampledf$time, bias.adjust = TRUE))
+anova(betadisper(qd_por_bj, sampledf$time, bias.adjust = TRUE)) # sig
+anova(betadisper(qd_por_wu, sampledf$time, bias.adjust = TRUE)) # sig
+anova(betadisper(qd_por_un, sampledf$time, bias.adjust = TRUE))
+# pairwise
+p.adjust(permutest(betadisper(qd_por_bj, sampledf$time, 
+                              bias.adjust = TRUE), 
+                   pairwise=TRUE)$pairwise$permuted, method = 'fdr')
+p.adjust(permutest(betadisper(qd_por_wu, sampledf$time, 
+                              bias.adjust = TRUE), 
+                   pairwise=TRUE)$pairwise$permuted, method = 'fdr')

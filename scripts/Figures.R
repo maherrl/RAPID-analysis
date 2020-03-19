@@ -77,6 +77,10 @@ A <- ggplot(alphadiv, aes(x=time, y=richness, color = time)) +
   scale_x_discrete(breaks=breakss, labels=labelss) +
   ylab("Chao1 Index") +
   scale_colour_colorblind() + 
+  stat_summary(aes(color = time), geom = 'text', 
+               label = c("ac","ab","b","ab","c", "a","a","b","a","b","ab","b","ab","a"), 
+               fun.y = max, vjust = -1, size = 3) +
+  scale_y_continuous(expand = expand_scale(mult = c(0, .1))) +
   theme_bw() +
   theme(legend.position = "none",
         axis.title.x = element_blank(),
@@ -88,7 +92,11 @@ B <- ggplot(alphadiv, aes(x=time, y=evenness, color = time)) +
   geom_point(aes(color = time), position = position_jitter(width = .2, height = 0)) +
   scale_x_discrete(breaks=breakss, labels=labelss) +
   ylab("Simpson's Diversity Index") +
+  scale_y_continuous(expand = expand_scale(mult = c(0, .1))) +
   scale_colour_colorblind() + 
+  stat_summary(aes(color = time), geom = 'text', 
+               label = c("ab","b","b","b","a","abc", "b","c","b","d","ab","ab","a","b"), 
+               fun.y = max, vjust = -1, size = 3) +
   theme_bw() +
   theme(legend.position = "none",
         axis.title.x = element_blank(),
@@ -100,7 +108,11 @@ C <- ggplot(alphadiv, aes(x=time, y=faithPD, color = time)) +
   geom_point(aes(color = time), position = position_jitter(width = .2, height = 0)) +
   scale_x_discrete(breaks=breakss, labels=labelss) +
   ylab("Faith's Phylogenetic Diversity") +
-  scale_colour_colorblind() + 
+  scale_y_continuous(expand = expand_scale(mult = c(0, .1))) +
+  scale_colour_colorblind() +
+  stat_summary(aes(color = time), geom = 'text', 
+               label = c("a","a","a","a","b","abc","b", "c","b","d","ab","a","ab","b"), 
+               fun.y = max, vjust = -1, size = 3) +
   theme_bw() +
   theme(legend.position = "none",
         axis.title.x = element_blank(),
